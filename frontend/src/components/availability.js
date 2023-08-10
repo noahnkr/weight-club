@@ -1,6 +1,7 @@
 import { Bar } from 'react-chartjs-2';
 import { useState } from 'react';
 import { Chart } from 'chart.js/auto';
+import 'chartjs-plugin-zoom';
 
 const Availability = () => {
 
@@ -49,12 +50,32 @@ const Availability = () => {
         data={chartData}
         options={{
           plugins: {
+            tooltip: {
+              callbacks: {
+                title: () => '',
+                label: (ctx) => {
+                  return 'BRUH';
+                }
+              }
+            },
             legend: {
               display: false
-            }
-          },
-          onClick: (event, elements) => {
-            
+            },
+            zoom: {
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true,
+                },
+                mode: 'x',
+              },
+              pan: {
+                enabled: true,
+                mode: 'x',
+              },
+            },
           }
         }}
       />
