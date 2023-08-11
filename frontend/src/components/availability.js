@@ -44,8 +44,6 @@ const Availability = () => {
   });
 
   return (
-    <div className="chart-container">
-      <h2 style={{ textAlign: 'center' }}>Weight Club Availability</h2>
       <Bar
         data={chartData}
         options={{
@@ -60,26 +58,10 @@ const Availability = () => {
             },
             legend: {
               display: false
-            },
-            zoom: {
-              zoom: {
-                wheel: {
-                  enabled: true,
-                },
-                pinch: {
-                  enabled: true,
-                },
-                mode: 'x',
-              },
-              pan: {
-                enabled: true,
-                mode: 'x',
-              },
-            },
+            }
           }
         }}
       />
-    </div>
   );
 };
 

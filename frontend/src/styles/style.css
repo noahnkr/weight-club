@@ -6,8 +6,34 @@
 body {
     font-family: Arial, sans-serif;
 }
+.heading {
+    font-size: 28px;
+}
 
 .home {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+.availability-graph {
+    width: 90%;
+    margin-bottom: 25px;
+}
+
+
+.checkin-button a {
+    background-color: #f1bc45;
+    color: #cc0000;
+    padding: 10px 12px 10px 12px;
+    font-weight: bold;
+    font-size: 32px;
+    text-decoration: none;
+}
+
+.checkin-button a:hover {
+    background-color: #cc0000;
+    color: #f1bc45;
+    cursor: pointer;
+
 }
