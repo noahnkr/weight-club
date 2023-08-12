@@ -57,7 +57,7 @@ app.get('/availability/members', async (req, res) => {
     });
 });
 
-app.put('/checkIn/member', async (req, res) => {
+app.put('/checkin/member', async (req, res) => {
     const { name, date, time } = req.query;
     const ref = database.collection(date).doc(time);
     await ref.get().then(doc => {
@@ -76,7 +76,7 @@ app.put('/checkIn/member', async (req, res) => {
 });
 
 
-app.post('/checkIn/HSO', async (req, res) => {
+app.post('/checkin/HSO', async (req, res) => {
 
 });
 
