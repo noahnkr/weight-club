@@ -1,0 +1,8 @@
+.time-container {
+    display: flex;
+    flex-direction: row;
+}
+
+.time-container select {
+    margin: 0px 2px 0px 2px;
+}

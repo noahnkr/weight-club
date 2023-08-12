@@ -1,8 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const { database } = require('./firebase');
 
 app.use(express.json());
+app.use(cors());
 
 /*
 POST:
@@ -57,8 +59,10 @@ app.get('/availability/members', async (req, res) => {
     });
 });
 
-app.put('/checkin/member', async (req, res) => {
-    const { name, date, time } = req.query;
+app.put('/checkin/member/:date', async (req, res) => {
+    const { date } = req.params;
+    const { name, time } = req.body;
+
     const ref = database.collection(date).doc(time);
     await ref.get().then(doc => {
         if (doc.exists) {

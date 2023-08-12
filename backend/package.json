@@ -9,6 +9,7 @@
   "author": "Noah Roberts",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "firebase": "^10.1.0",
     "firebase-admin": "^11.10.1",
