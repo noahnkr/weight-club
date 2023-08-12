@@ -26,8 +26,8 @@ DELETE:
 - Delete check in
 */
 
-app.get('/availability/count', async (req, res) => {
-    const { date, time } = req.query;
+app.get('/availability/member/count/:date/:time', async (req, res) => {
+    const { date, time } = req.params;
     const ref = database.collection(date).doc(time);
     await ref.get().then(doc => {
         if (doc.exists) {
@@ -42,8 +42,8 @@ app.get('/availability/count', async (req, res) => {
     });
 });
 
-app.get('/availability/members', async (req, res) => {
-    const { date, time } = req.query;
+app.get('/availability/member/members/:date/:time', async (req, res) => {
+    const { date, time } = req.params;
     const ref = database.collection(date).doc(time);
     await ref.get().then(doc => {
         if (doc.exists) {
@@ -59,9 +59,9 @@ app.get('/availability/members', async (req, res) => {
     });
 });
 
-app.put('/checkin/member/:date', async (req, res) => {
-    const { date } = req.params;
-    const { name, time } = req.body;
+app.put('/checkin/member/:date/:time', async (req, res) => {
+    const { date, time } = req.params;
+    const { name } = req.body;
 
     const ref = database.collection(date).doc(time);
     await ref.get().then(doc => {

@@ -20,9 +20,9 @@ const Navbar = () => {
                 <div className="bar"></div>
             </div>
             <ul className="nav-links">
-                <li><Link exact="true" to="/">Home</Link></li>
-                <li><Link exact="true" to="checkin">Check In</Link></li>
-                <li><Link exact="true" to="about">About</Link></li>
+                <li><Link exact="true" to="/" onClick={toggleMenu}>Home</Link></li>
+                <li><Link exact="true" to="checkin" onClick={toggleMenu}>Check In</Link></li>
+                <li><Link exact="true" to="about" onClick={toggleMenu}>About</Link></li>
             </ul>
         </div>
         

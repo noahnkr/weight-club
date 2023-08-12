@@ -45,15 +45,12 @@ const Checkin = () => {
         }
 
         range.forEach(time => {
-            fetch(`http://localhost:4000/checkin/member/${date}`, {
+            fetch(`http://localhost:4000/checkin/member/${date}/${time}`, {
                 method: 'PUT',
-                headers: { 'content-type' : 'application/json' },
-                body: JSON.stringify({
-                  name: name,
-                  time: time
-                })
+                headers: { 'Content-Type' : 'application/json' },
+                body: JSON.stringify({ name: name })
             })
-            .then(res => res.json())
+            .then(res => console.log(res))
             .catch(err => console.log(err));
         });
     }
@@ -95,67 +92,78 @@ const Checkin = () => {
 
     return (
         <div className="checkin">
-            <p>Name</p>
-            <input type="text" name="name" onChange={handleChange} />
-            <p>Date</p>
-            <input type="date" name="date" onChange={handleChange} />
-            <p>Check In</p>
-            <div className="time-container" id="checkin-input">
-              <select name="checkinHour" id="checkinHour" defaultValue={'06'} onChange={handleChange}>
-                <option value="01">1</option>
-                <option value="02">2</option>
-                <option value="03">3</option>
-                <option value="04">4</option>
-                <option value="05">5</option>
-                <option value="06">6</option>
-                <option value="07">7</option>
-                <option value="08">8</option>
-                <option value="09">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
-              <p>:</p>
-              <select name="checkinMin" id="checkinMin" defaultValue={'00'} onChange={handleChange}>
-                <option value="00">00</option>
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-              </select>
-              <select name="checkinAMPM" id="checkinAMPM" defaultValue={'AM'} onChange={handleChange}>
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
+            <h1 className="heading">Check In</h1>
+            <div className="checkin-form">
+              <div className="input-container">
+                <label htmlFor="name">Name</label>
+                <input type="text" name="name" onChange={handleChange} />
+              </div>
+              <div className="input-container">
+                <label htmlFor="date">Date</label>
+                <input type="date" name="date" onChange={handleChange} />
+              </div>
+              <div className="input-container">
+                <div className="time-container" id="checkin-input">
+                <label htmlFor="checkinHour">Check In</label>
+                  <select name="checkinHour" id="checkinHour" defaultValue={'06'} onChange={handleChange}>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                  </select>
+                  <p>:</p>
+                  <select name="checkinMin" id="checkinMin" defaultValue={'00'} onChange={handleChange}>
+                    <option value="00">00</option>
+                    <option value="15">15</option>
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                  </select>
+                  <select name="checkinAMPM" id="checkinAMPM" defaultValue={'AM'} onChange={handleChange}>
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
+              <div className="input-container">
+                <div className="time-container" id="checkout-input">       
+                  <label htmlFor="checkoutHour">Check Out</label>     
+                  <select name="checkoutHour" id="checkoutHour" defaultValue={'09'} onChange={handleChange}>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                  </select>
+                  <p>:</p>
+                  <select name="checkoutMin" id="checkoutMin" defaultValue={'00'} onChange={handleChange}>
+                    <option value="00">00</option>
+                    <option value="15">15</option>
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                  </select>
+                  <select name="checkoutAMPM" id="checkoutAMPM" defaultValue={'PM'} onChange={handleChange}>
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
+              <div className="button" id="submit-button" onClick={submit}>Submit »</div>
             </div>
-            <p>Check Out</p>
-            <div className="time-container" id="checkout-input">            
-              <select name="checkoutHour" id="checkoutHour" defaultValue={'09'} onChange={handleChange}>
-                <option value="01">1</option>
-                <option value="02">2</option>
-                <option value="03">3</option>
-                <option value="04">4</option>
-                <option value="05">5</option>
-                <option value="06">6</option>
-                <option value="07">7</option>
-                <option value="08">8</option>
-                <option value="09">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
-              <p>:</p>
-              <select name="checkoutMin" id="checkoutMin" defaultValue={'00'} onChange={handleChange}>
-                <option value="00">00</option>
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-              </select>
-              <select name="checkoutAMPM" id="checkoutAMPM" defaultValue={'PM'} onChange={handleChange}>
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
-            </div>
-            <input type="submit" value="Submit" onClick={submit} />
         </div>
     );
 };
