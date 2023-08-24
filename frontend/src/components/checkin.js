@@ -45,7 +45,7 @@ const Checkin = () => {
         }
 
         range.forEach(time => {
-            fetch(`http://localhost:4000/checkin/member/${date}/${time}`, {
+            fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/checkIn?date=${date}&time=${time}`, {
                 method: 'PUT',
                 headers: { 'Content-Type' : 'application/json' },
                 body: JSON.stringify({ name: name })
@@ -162,6 +162,7 @@ const Checkin = () => {
                   </select>
                 </div>
               </div>
+              <p id="disclaimer">* Please try to overestimate how long you think you're going to be at the club for!</p>
               <div className="button" id="submit-button" onClick={submit}>Submit »</div>
             </div>
         </div>
