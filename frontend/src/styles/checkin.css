@@ -14,10 +14,16 @@
     font-size: 18px;
 }
 
-.time-container {
+.time-container, .member-type-container {
     display: flex;
     flex-direction: row;
+    justify-content: center;
 }
+
+.member-type-container div {
+    margin: 0px 5px 0px 5px;
+}
+
 
 .time-container select {
     margin: 0px 2px 0px 2px;

@@ -2,16 +2,23 @@ import { Bar } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto'
 
 
-const Availability = ({ data, members }) => {
+const Availability = ({ data, members, hso }) => {
 
   const chartData = {
     labels: data.map(data => data.time), 
     datasets: [
       {
         label: 'Members',
-        data: data.map(data => data.count),
-        backgroundColor: data.map(data => data.count < 3 ? 'rgba(255, 99, 132, 0.3)' : 'rgba(54, 162, 235, 0.3)'),
-        borderColor: data.map(data => data.count < 3 ? 'rgb(255, 99, 132)' : 'rgb(54, 162, 235)'),
+        data: data.map(data => data.memberCount),
+        backgroundColor: 'rgba(54, 162, 235, 0.3)',
+        borderColor: 'rgb(54, 162, 235)',
+        borderWidth: 2
+      },
+      {
+        label: 'HSO',
+        data: data.map(data => data.hsoCount),
+        backgroundColor: 'rgba(202, 255, 191, 0.3)',
+        borderColor: 'rgb(202, 255, 191)',
         borderWidth: 2
       }
     ]
@@ -40,6 +47,10 @@ const Availability = ({ data, members }) => {
       legend: {
         display: false
       }
+    },
+    scales: {
+      x: { stacked: true },
+      y: { stacked: true }
     }
   };
 
