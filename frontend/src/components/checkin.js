@@ -11,7 +11,7 @@ const Checkin = () => {
     const [checkoutHour, setCheckoutHour] = useState('09');
     const [checkoutMin, setCheckoutMin] = useState('00');
     const [checkoutAMPM, setCheckoutAMPM] = useState('PM');
-    const [memberOrHSO, setMemberOrHSO] = useState('member');
+    const [isHso, setisHso] = useState(false);
 
 
     function handleChange(e) {
@@ -27,10 +27,12 @@ const Checkin = () => {
             else if (name.includes('AMPM')) { setCheckoutAMPM(value); }
         } else if (name === 'name') {
           setName(value);
+        } else if (name === 'date') {
+          setDate(value);
         } else if (name === 'member') {
-          setMemberOrHSO(name);
+          setisHso(false);
         } else if (name === 'hso') {
-          setMemberOrHSO(name);
+          setisHso(true);
         }
     }
 
@@ -39,7 +41,6 @@ const Checkin = () => {
         const checkin = `${checkinHour}:${checkinMin} ${checkinAMPM}`;
         const checkout = `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`;
         const range = getTimeRange(checkin, checkout);
-        const isHSO = memberOrHSO === 'hso';
 
         if (range.length == 0) {
             window.alert('Check in time must be before check out time.');
@@ -53,7 +54,7 @@ const Checkin = () => {
             fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/checkIn?date=${date}&time=${time}`, {
                 method: 'PUT',
                 headers: { 'Content-Type' : 'application/json' },
-                body: JSON.stringify({ name: name, isHSO: isHSO })
+                body: JSON.stringify({ name: name, isHSO: isHso })
             })
             .then(res => console.log(res))
             .catch(err => console.log(err));
@@ -169,11 +170,11 @@ const Checkin = () => {
                 <div className="member-type-container">
                   <div>
                     <label htmlFor="member">Member</label>
-                    <input type="radio" name="member" checked={memberOrHSO === 'member'} onChange={handleChange} />
+                    <input type="radio" name="member" checked={!isHso} onChange={handleChange} />
                   </div>
                   <div>
                     <label htmlFor="hso">HSO</label>
-                    <input type="radio" name="hso" checked={memberOrHSO === 'hso'} onChange={handleChange} />
+                    <input type="radio" name="hso" checked={isHso} onChange={handleChange} />
                   </div>
                 </div>
               </div>

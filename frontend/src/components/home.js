@@ -11,40 +11,11 @@ TODO:
 
 const Home = () => {
 
-    const weekdayTimes = ['6:00 AM', '6:15 AM', '6:30 AM', '6:45 AM',
-                          '7:00 AM', '7:15 AM', '7:30 AM', '7:45 AM',  
-                          '8:00 AM', '8:15 AM', '8:30 AM', '8:45 AM',  
-                          '9:00 AM', '9:15 AM', '9:30 AM', '9:45 AM',  
-                          '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM',  
-                          '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',  
-                          '12:00 PM', '12:15 PM', '12:30 PM', '12:45 PM',  
-                          '1:00 PM', '1:15 PM', '1:30 PM', '1:45 PM',  
-                          '2:00 PM', '2:15 PM', '2:30 PM', '2:45 PM',  
-                          '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM',  
-                          '4:00 PM', '4:15 PM', '4:30 PM', '4:45 PM',  
-                          '5:00 PM', '5:15 PM', '5:30 PM', '5:45 PM',  
-                          '6:00 PM', '6:15 PM', '6:30 PM', '6:45 PM',  
-                          '7:00 PM', '7:15 PM', '7:30 PM', '7:45 PM',  
-                          '8:00 PM', '8:15 PM', '8:30 PM', '8:45 PM',  
-                          '9:00 PM'];
-
-    const weekendTimes =  ['8:00 AM', '8:15 AM', '8:30 AM', '8:45 AM',  
-                           '9:00 AM', '9:15 AM', '9:30 AM', '9:45 AM',  
-                           '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM',  
-                           '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',  
-                           '12:00 PM', '12:15 PM', '12:30 PM', '12:45 PM',  
-                           '1:00 PM', '1:15 PM', '1:30 PM', '1:45 PM',  
-                           '2:00 PM', '2:15 PM', '2:30 PM', '2:45 PM',  
-                           '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM',  
-                           '4:00 PM', '4:15 PM', '4:30 PM', '4:45 PM',  
-                           '5:00 PM', '5:15 PM', '5:30 PM', '5:45 PM',  
-                           '6:00 PM'];
 
     const [date, setDate] = useState('');
     const [currentTime, setCurrentTime] = useState('')
     const [data, setData] = useState([]);
     const [members, setMembers] = useState([]);
-    const [hso, setHso] = useState([]);
 
     // Determine current Date & Time
     useEffect(() => {
@@ -65,41 +36,54 @@ const Home = () => {
 
     useEffect(() => {
         async function fetchData() {
-            const newData = await Promise.all(
-                weekdayTimes.map(async time => {
-                    const memberCount = await getMemberCount(time);
-                    const hsoCount = await getHsoCount(time);
-                    return {
-                        time: time,
-                        memberCount: memberCount,
-                        hsoCount: hsoCount
-                    };
-                })
-            );
+            const times = await getTimes();
+            console.log(times);
+            const memberCount = await getMemberCount();
+            const hsoCount = await getHsoCount();
+            
+            const newData = times.map(time => {
+                return {
+                    time: time,
+                    memberCount: memberCount[time],
+                    hsoCount: hsoCount[time]
+                };
+            });
             setData(newData);
 
-            const newMembers = await Promise.all(
-                weekdayTimes.map(async time => {
-                    return await getMembers(time);
-                })
-            );
+            const memberData = await getMembers();
+            const hsoData = await getHso();
+
+            const newMembers = times.map(time => {
+                return {
+                    time: time,
+                    members: memberData[time],
+                    hso: hsoData[time]
+                };
+            })
             setMembers(newMembers);
-
-            const newHso = await Promise.all(
-                weekdayTimes.map(async time => {
-                    return await getHso(time);
-                })
-            );
-            setHso(newHso);
         }
-
-        fetchData();
+        
+        if (date !== '' && date !== undefined) {
+            fetchData();
+        }
+        
     }, [date])
     
 
-    async function getMemberCount(time) {
+    async function getTimes() {
         try {
-            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getMemberCount?date=${date}&time=${time}`, { method: 'GET' });
+            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getTimes?date=${date}`, { method: 'GET' });
+            const times = await res.json();
+            return times;
+        } catch (err) {
+            console.log(err);
+            return [];
+        }
+    }
+
+    async function getMemberCount() {
+        try {
+            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getMemberCount?date=${date}`, { method: 'GET' });
             const count = await res.json();
             return count;
         } catch (err) {
@@ -108,9 +92,9 @@ const Home = () => {
         }
     }
 
-    async function getHsoCount(time) {
+    async function getHsoCount() {
         try {
-            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getHsoCount?date=${date}&time=${time}`, { method: 'GET' });
+            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getHsoCount?date=${date}`, { method: 'GET' });
             const count = await res.json();
             return count;
         } catch (err) {
@@ -119,9 +103,9 @@ const Home = () => {
         }
     }
 
-    async function getMembers(time) {
+    async function getMembers() {
         try {
-            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getMembers?date=${date}&time=${time}`, { method: 'GET' });
+            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getMembers?date=${date}`, { method: 'GET' });
             const members = await res.json();
             return members;
         } catch (err) {
@@ -130,9 +114,9 @@ const Home = () => {
         }
     }
 
-    async function getHso(time) {
+    async function getHso() {
         try {
-            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getHso?date=${date}&time=${time}`, { method: 'GET' });
+            const res = await fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/getHso?date=${date}`, { method: 'GET' });
             const members = await res.json();
             return members;
         } catch (err) {
@@ -146,7 +130,7 @@ const Home = () => {
         <div className="home">
             <h1 className="heading">Availability</h1>
             <div className="availability-graph">
-                <Availability data={data} members={members} hso={hso} />
+                <Availability data={data} memberData={members} />
             </div>
             <div className="button">
                 <Link exact="true" to="/checkin">Check In »</Link>

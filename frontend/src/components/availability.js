@@ -2,7 +2,7 @@ import { Bar } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto'
 
 
-const Availability = ({ data, members, hso }) => {
+const Availability = ({ data, memberData }) => {
 
   const chartData = {
     labels: data.map(data => data.time), 
@@ -41,7 +41,7 @@ const Availability = ({ data, members, hso }) => {
       tooltip: {
         callbacks: {
           title: () => 'Members:',
-          label: (ctx) => members[ctx.dataIndex].join(', ')
+          label: (ctx) => ''
         }
       },
       legend: {
@@ -50,7 +50,13 @@ const Availability = ({ data, members, hso }) => {
     },
     scales: {
       x: { stacked: true },
-      y: { stacked: true }
+      y: { 
+        stacked: true,
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
     }
   };
 

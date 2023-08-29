@@ -13,76 +13,104 @@ const database = getFirestore();
 
 exports.getMemberCount = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
-        const { date, time } = req.query;
-        const ref = database.collection(date).doc(time);
-        await ref.get().then(doc => {
-            if (doc.exists) {
-                const count = String(doc.data().members.length);
-                res.status(200).send(count);
-            } else {
-                res.status(404).send('Document does not exist.')
-            }
-        }).catch(err => {
-            console.error(err);
-            res.status(500).send('Error getting document.');
-        });
+        try {
+            const { date } = req.query;
+            const ref = database.collection(date);
+            const dateCollection = await ref.get();
+            const memberCount = {};
+
+            dateCollection.forEach(time => {
+                const count = time.data().members.length;
+                memberCount[time.id] = count;
+            });
+
+            res.status(200).json(memberCount);
+        } catch (err) {
+            res.status(500).send('Error getting member counts');
+        }
     });
 });
 
 exports.getMembers = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
-        const { date, time } = req.query;
-        const ref = database.collection(date).doc(time);
-        await ref.get().then(doc => {
-            if (doc.exists) {
-                const members = doc.data().members;
-                res.status(200).send(members);
-            } else {
-                res.status(404).send('Document does not exist.');
-            }
-        }).catch(err => {
-            console.error(err);
-            res.status(500).send('Error getting document.');
-        });
+        try {
+            const { date } = req.query;
+            const ref = database.collection(date);
+            const dateCollection = await ref.get();
+            const members = {};
+
+            dateCollection.forEach(time => {
+                const membersAtTime = time.data().members;
+                members[time.id] = membersAtTime;
+            });
+
+            res.status(200).json(members);
+        } catch (err) {
+            res.status(500).send('Error getting members.');
+        }
     });
 });
 
 
 exports.getHsoCount = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
-        const { date, time } = req.query;
-        const ref = database.collection(date).doc(time);
-        await ref.get().then(doc => {
-            if (doc.exists) {
-                const count = String(doc.data().hso.length);
-                res.status(200).send(count);
-            } else {
-                res.status(404).send('Document does not exist.')
-            }
-        }).catch(err => {
-            console.error(err);
-            res.status(500).send('Error getting document.');
-        });
+        try {
+            const { date } = req.query;
+            const ref = database.collection(date);
+            const dateCollection = await ref.get();
+            const hsoCount = {};
+
+            dateCollection.forEach(time => {
+                const count = time.data().hso.length;
+                hsoCount[time.id] = count;
+            });
+
+            res.status(200).json(hsoCount);
+        } catch (err) {
+            res.status(500).send('Error getting HSO counts.');
+        }
     });
 });
 
 exports.getHso = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
-        const { date, time } = req.query;
-        const ref = database.collection(date).doc(time);
-        await ref.get().then(doc => {
-            if (doc.exists) {
-                const hso = doc.data().hso;
-                res.status(200).send(hso);
-            } else {
-                res.status(404).send('Document does not exist.');
-            }
-        }).catch(err => {
-            console.error(err);
-            res.status(500).send('Error getting document.');
-        });
+        try {
+            const { date } = req.query;
+            const ref = database.collection(date);
+            const dateCollection = await ref.get();
+            const hso = {};
+
+            dateCollection.forEach(time => {
+                const hsoAtTime = time.data().hso;
+                hso[time.id] = hsoAtTime;
+            });
+
+            res.status(200).json(hso);
+        } catch (err) {
+            res.status(500).send('Error getting members.');
+        }
     });
 });
+
+exports.getTimes = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            const { date } = req.query;
+            const ref = database.collection(date);
+            const dateCollection = await ref.get();
+            const times = [];
+
+            dateCollection.forEach(time => {
+                times.push(time.id);
+            });
+
+            res.status(200).send(times);
+        } catch (err) {
+            res.status(500).send('Error getting members.');
+        }
+    });
+});
+
 
 exports.checkIn = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
@@ -152,4 +180,3 @@ function generateTimeIntervals() {
     return intervals;
   }
 
-console.log(generateTimeIntervals())
