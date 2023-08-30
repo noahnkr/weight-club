@@ -55,5 +55,16 @@ p {
     background-color: #cc0000;
     color: #f1bc45;
     cursor: pointer;
+}
 
+.current-members {
+    margin-top: 25px;
+}
+
+.open {
+    color: green;
+}
+
+.closed {
+    color: red;
 }
