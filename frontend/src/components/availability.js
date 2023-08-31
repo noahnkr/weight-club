@@ -41,6 +41,8 @@ const Availability = ({ chartData, memberData, hsoData, date }) => {
   };
 
   const options = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       title: { display: true, text: date },
       zoom: {
@@ -88,6 +90,7 @@ const Availability = ({ chartData, memberData, hsoData, date }) => {
       },
       y: {
         min: 0,
+        max: 10,
         stacked: true,
         beginAtZero: true,
         beforeBuildTicks: (scale) => {

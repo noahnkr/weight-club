@@ -33,11 +33,11 @@ p {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-top: 10%;
 }
 
 .availability-graph {
     width: 90%;
+    height: 400px;
     margin-bottom: 25px;
 }
 

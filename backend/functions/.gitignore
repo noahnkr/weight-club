@@ -1,3 +1,6 @@
 node_modules/
 
 firebase-key.json
+firestore-debug.log
+firestore.indexes.json
+ui-debug.log

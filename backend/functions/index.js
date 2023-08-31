@@ -112,29 +112,30 @@ exports.getTimes = functions.https.onRequest((req, res) => {
 
 exports.checkIn = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
-    const { date, time } = req.query;
-        const { name, isHso } = req.body;
+    const { date } = req.query;
+    const { name, range, isHso } = req.body;
+    const batch = database.batch();
 
+    try {
+      for (const time of range) {
         const ref = database.collection(date).doc(time);
-        await ref.get().then(doc => {
-            if (doc.exists) {
-                if (isHso) {
-                    const hso = doc.data().hso;
-                    hso.push(name);
-                    ref.update({ hso: hso });
-                } else {
-                    const members = doc.data().members;
-                    members.push(name);
-                    ref.update({ members: members });
-                }
-            } else {
-                res.status(404).send('Document does not exist.');
-            }
-        }).catch(err => {
-            console.error(err);
-            res.status(500).send('Error updating document.')
-        });
-        res.status(200).send('Successfully updated document.');
+        const doc = await ref.get();
+        if (doc.exists) {
+          const fieldName = isHso ? "hso" : "members";
+          const field = doc.data()[fieldName];
+          field.push(name);
+          batch.update(ref, { [fieldName]: field });
+        } else {
+          res.status(404).send("Document does not exist.");
+          return;
+        }
+      };
+      await batch.commit();
+      res.status(200).send("Batch check-in successful")
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Error checking in.");
+    }
   });
 });
 

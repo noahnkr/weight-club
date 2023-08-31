@@ -49,26 +49,28 @@ const Checkin = () => {
     const range = generateTimeRange(checkin, checkout);
 
     if (range.length === 0) {
-      window.alert("Check in time must be before check out time.");
+      alert("Check in time must be before check out time.");
       return;
     } else if  (range.length === 1) {
-      window.alert("Duration must be at least 15 minutes long");
+      alert("Duration must be at least 15 minutes long");
+      return;
     } else if (name === "" || date === "") {
-      window.alert("Please enter a name and/or date.");
+      alert("Please enter a name and/or date.");
       return;
     } 
 
-    console.log(isHso);
+    fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/checkIn?date=${date}`, {
+        method: 'PUT',
+        headers: { 'Content-Type' : 'application/json' },
+        body: JSON.stringify({ 
+          name: name, 
+          range: range, 
+          isHso: isHso 
+        })
+    })
+    .then(res => alert(`Successfully checked in from ${checkin} to ${checkout}.`))
+    .catch(err => alert("There was an error checking in."));
 
-    range.forEach(time => {
-      fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/checkIn?date=${date}&time=${time}`, {
-          method: 'PUT',
-          headers: { 'Content-Type' : 'application/json' },
-          body: JSON.stringify({ name: name, isHso: isHso })
-      })
-      .then(res => console.log(res))
-      .catch(err => window.alert("There was an error checking in."));
-  });
   }
 
   function generateTimeRange(startTime12hr, endTime12hr) {
