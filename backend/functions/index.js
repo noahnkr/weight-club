@@ -119,7 +119,7 @@ exports.memberCheckIn = functions.https.onRequest((req, res) => {
     try {
       const collectionRef = database.collection(date);
       const collection = await collectionRef.get();
-      if (collection.exists) {
+      if (!collection.empty) {
         for (const time of range) {
           const docRef = collectionRef.doc(time);
           const doc = await docRef.get();
@@ -127,20 +127,20 @@ exports.memberCheckIn = functions.https.onRequest((req, res) => {
             const members = doc.data().members;
             if (!members.includes(name)) {
               members.push(name);
-              batch.update(ref, { members: members });
+              batch.update(docRef, { members: members });
             } else {
-              res.status(409).send("Name already exists in time range.")
+              res.status(409).send("Name already exists in time range.");
               return;
             }
           } else {
             res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
+            return;
           }
         }
         await batch.commit();
-        res.status(200).send("Batch check-in successful")
+        res.status(200).send("Batch check-in successful");
       } else {
         res.status(404).send(`Cannot check in to date ${date} yet.`);
-        return;
       }
     } catch (err) {
       console.log(err);
@@ -148,6 +148,7 @@ exports.memberCheckIn = functions.https.onRequest((req, res) => {
     }
   });
 });
+
 
 exports.hsoCheckIn = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
@@ -158,7 +159,7 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
     try {
       const collectionRef = database.collection(date);
       const collection = await collectionRef.get();
-      if (collection.exists) {
+      if (!collection.empty) {
         for (const time of range) {
           const docRef = collectionRef.doc(time);
           const doc = await docRef.get();
@@ -166,20 +167,20 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
             const hso = doc.data().hso;
             if (!hso.includes(name)) {
               hso.push(name);
-              batch.update(ref, { hso: hso });
+              batch.update(docRef, { hso: hso });
             } else {
-              res.status(409).send("Name already exists in time range.")
+              res.status(409).send("Name already exists in time range.");
               return;
             }
           } else {
             res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
+            return;
           }
         }
         await batch.commit();
-        res.status(200).send("Batch check-in successful")
+        res.status(200).send("Batch check-in successful");
       } else {
         res.status(404).send(`Cannot check in to date ${date} yet.`);
-        return;
       }
     } catch (err) {
       console.log(err);
@@ -188,15 +189,13 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
   });
 });
 
-
-
 exports.createTomorrowCollection = functions.pubsub
   .schedule("0 0 * * *")
   .timeZone("America/Chicago")
   .onRun(async (ctx) => {
     const day = new Date();
     day.setDate(day.getDate() + 7);
-    const collectionName = day.toLocaleString().split(", ")[0].replace(/\//g, "-")
+    const collectionName = day.toISOString().split("T")[0];
 
     let range;
     let dayOfWeek = day.getDay();

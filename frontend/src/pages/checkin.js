@@ -92,7 +92,7 @@ const Checkin = () => {
             throw new Error(err);
           });
         } else {
-          alert(`Successfully checked in from ${checkin} to ${checkout}.`);
+          alert(`Successfully checked in from ${checkin} to ${checkout} on ${date}.`);
         }
       })
       .catch((err) => alert(err.message));
