@@ -5,6 +5,10 @@
     align-items: center;
 }
 
+.update-form {
+    margin-top: 25px;
+}
+
 .input-container {
     margin-bottom: 5px;
 }

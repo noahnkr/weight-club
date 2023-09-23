@@ -1,7 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/layout';
-import Home from './components/home';
-import Checkin from './components/checkin';
+import Home from './pages/home';
+import Checkin from './pages/checkin';
+import About from './pages/about';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Route path='/' element={<Layout />}>
           <Route index element={<Home />} />
           <Route path='checkin' element={<Checkin />} />
+          <Route path='about' element={<About />} />
         </Route>
       </Routes>
     </>

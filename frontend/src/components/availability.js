@@ -31,7 +31,7 @@ const Availability = ({ chartData, memberData, hsoData, date }) => {
         borderWidth: 2,
       },
       {
-        label: "Members",
+        label: "Member",
         data: chartData.map((data) => data.memberCount),
         backgroundColor: "rgba(54, 162, 235, 0.3)",
         borderColor: "rgb(54, 162, 235)",

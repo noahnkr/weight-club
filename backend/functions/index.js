@@ -110,46 +110,107 @@ exports.getTimes = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.checkIn = functions.https.onRequest((req, res) => {
+exports.memberCheckIn = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const { date } = req.query;
-    const { name, range, isHso } = req.body;
+    const { name, range } = req.body;
     const batch = database.batch();
 
     try {
-      for (const time of range) {
-        const ref = database.collection(date).doc(time);
-        const doc = await ref.get();
-        if (doc.exists) {
-          const fieldName = isHso ? "hso" : "members";
-          const field = doc.data()[fieldName];
-          field.push(name);
-          batch.update(ref, { [fieldName]: field });
-        } else {
-          res.status(404).send("Document does not exist.");
-          return;
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (collection.exists) {
+        for (const time of range) {
+          const docRef = collectionRef.doc(time);
+          const doc = await docRef.get();
+          if (doc.exists) {
+            const members = doc.data().members;
+            if (!members.includes(name)) {
+              members.push(name);
+              batch.update(ref, { members: members });
+            } else {
+              res.status(409).send("Name already exists in time range.")
+              return;
+            }
+          } else {
+            res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
+          }
         }
-      };
-      await batch.commit();
-      res.status(200).send("Batch check-in successful")
+        await batch.commit();
+        res.status(200).send("Batch check-in successful")
+      } else {
+        res.status(404).send(`Cannot check in to date ${date} yet.`);
+        return;
+      }
     } catch (err) {
       console.log(err);
-      res.status(500).send("Error checking in.");
+      res.status(500).send("There was an error checking in.");
     }
   });
 });
+
+exports.hsoCheckIn = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date } = req.query;
+    const { name, range } = req.body;
+    const batch = database.batch();
+
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (collection.exists) {
+        for (const time of range) {
+          const docRef = collectionRef.doc(time);
+          const doc = await docRef.get();
+          if (doc.exists) {
+            const hso = doc.data().hso;
+            if (!hso.includes(name)) {
+              hso.push(name);
+              batch.update(ref, { hso: hso });
+            } else {
+              res.status(409).send("Name already exists in time range.")
+              return;
+            }
+          } else {
+            res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
+          }
+        }
+        await batch.commit();
+        res.status(200).send("Batch check-in successful")
+      } else {
+        res.status(404).send(`Cannot check in to date ${date} yet.`);
+        return;
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("There was an error checking in.");
+    }
+  });
+});
+
+
 
 exports.createTomorrowCollection = functions.pubsub
   .schedule("0 0 * * *")
   .timeZone("America/Chicago")
   .onRun(async (ctx) => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1); // Yesterday document going to be deleted, so actual tomorrow will be 2 days ahead.
-    const collectionName = tomorrow.toISOString().split("T")[0];
+    const day = new Date();
+    day.setDate(day.getDate() + 7);
+    const collectionName = day.toLocaleString().split(", ")[0].replace(/\//g, "-")
 
-    const range = isWeekday(tomorrow)
-      ? generateTimeRange("6:00 AM", "8:45 PM")
-      : generateTimeRange("8:00 AM", "5:45 PM");
+    let range;
+    let dayOfWeek = day.getDay();
+  
+    // weekday
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      range = generateTimeRange("6:00 AM", "8:45 PM");
+    // saturday
+    } else if (dayOfWeek == 6) {
+      range = generateTimeRange("8:00 AM", "5:45 PM");
+    // sunday
+    } else {
+      range = generateTimeRange("12:00 PM", "5:45 PM");
+    }
 
     const batch = database.batch();
     const collectionRef = database.collection(collectionName);
@@ -164,11 +225,6 @@ exports.createTomorrowCollection = functions.pubsub
 
     return batch.commit();
   });
-
-  function isWeekday(date) {
-    const dayOfWeek = date.getDay();
-    return dayOfWeek >= 1 && dayOfWeek <= 5;
-  }
 
 // Returns an array of time strings in 24 hour format inclusively inbetween two 12 hour times
 function generateTimeRange(startTime12hr, endTime12hr) {

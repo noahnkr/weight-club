@@ -2,14 +2,15 @@ import { useState } from "react";
 import "../styles/checkin.css";
 
 const Checkin = () => {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [date, setDate] = useState("");
-  const [checkinHour, setCheckinHour] = useState("6");
-  const [checkinMin, setCheckinMin] = useState("00");
-  const [checkinAMPM, setCheckinAMPM] = useState("AM");
-  const [checkoutHour, setCheckoutHour] = useState("9");
-  const [checkoutMin, setCheckoutMin] = useState("00");
-  const [checkoutAMPM, setCheckoutAMPM] = useState("PM");
+  const [checkinHour, setCheckinHour] = useState("");
+  const [checkinMin, setCheckinMin] = useState("");
+  const [checkinAMPM, setCheckinAMPM] = useState("");
+  const [checkoutHour, setCheckoutHour] = useState("");
+  const [checkoutMin, setCheckoutMin] = useState("");
+  const [checkoutAMPM, setCheckoutAMPM] = useState("");
   const [isHso, setisHso] = useState(false);
 
   function handleChange(e) {
@@ -31,8 +32,10 @@ const Checkin = () => {
       } else if (name.includes("AMPM")) {
         setCheckoutAMPM(value);
       }
-    } else if (name === "name") {
-      setName(value);
+    } else if (name === "firstName") {
+      setFirstName(value);
+    } else if (name === "lastName") {
+      setLastName(value);
     } else if (name === "date") {
       setDate(value);
     } else if (name === "member") {
@@ -47,30 +50,52 @@ const Checkin = () => {
     const checkin = `${checkinHour}:${checkinMin} ${checkinAMPM}`;
     const checkout = `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`;
     const range = generateTimeRange(checkin, checkout);
+    const name = `${firstName} ${lastName}`;
 
-    if (range.length === 0) {
-      alert("Check in time must be before check out time.");
-      return;
-    } else if  (range.length === 1) {
-      alert("Duration must be at least 15 minutes long");
-      return;
-    } else if (name === "" || date === "") {
+    if (firstName === "" || lastName === "" || date === "") {
       alert("Please enter a name and/or date.");
       return;
-    } 
+    } else if (
+      checkinHour === "" ||
+      checkinMin === "" ||
+      checkinAMPM === "" ||
+      checkoutHour === "" ||
+      checkoutMin === "" ||
+      checkoutAMPM === ""
+    ) {
+      alert("Please enter a checkin/checkout time.");
+      return;
+    } else if (range.length === 1) {
+      alert("Must check in for atleast 30 minutes.");
+      return;
+    } else if (range.length === 0) {
+      alert("Check in time must be before check out time.");
+      return;
+    }
 
-    fetch(`https://us-central1-weight-club-e16e5.cloudfunctions.net/checkIn?date=${date}`, {
-        method: 'PUT',
-        headers: { 'Content-Type' : 'application/json' },
-        body: JSON.stringify({ 
-          name: name, 
-          range: range, 
-          isHso: isHso 
-        })
-    })
-    .then(res => alert(`Successfully checked in from ${checkin} to ${checkout}.`))
-    .catch(err => alert("There was an error checking in."));
-
+    fetch(
+      `https://us-central1-weight-club-e16e5.cloudfunctions.net/${
+        isHso ? "hso" : "member"
+      }CheckIn?date=${date}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name,
+          range: range,
+        }),
+      }
+    )
+      .then((res) => {
+        if (!res.ok) {
+          return res.text().then((err) => {
+            throw new Error(err);
+          });
+        } else {
+          alert(`Successfully checked in from ${checkin} to ${checkout}.`);
+        }
+      })
+      .catch((err) => alert(err.message));
   }
 
   function generateTimeRange(startTime12hr, endTime12hr) {
@@ -112,8 +137,12 @@ const Checkin = () => {
       <h1 className="heading">Check In</h1>
       <div className="checkin-form">
         <div className="input-container">
-          <label htmlFor="name">Name</label>
-          <input type="text" name="name" onChange={handleChange} />
+          <label htmlFor="firstName">First Name</label>
+          <input type="text" name="firstName" onChange={handleChange} />
+        </div>
+        <div className="input-container">
+          <label htmlFor="lastName">Last Name</label>
+          <input type="text" name="lastName" onChange={handleChange} />
         </div>
         <div className="input-container">
           <label htmlFor="date">Date</label>
@@ -125,9 +154,10 @@ const Checkin = () => {
             <select
               name="checkinHour"
               id="checkinHour"
-              defaultValue="6"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -145,9 +175,10 @@ const Checkin = () => {
             <select
               name="checkinMin"
               id="checkinMin"
-              defaultValue="00"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="00">00</option>
               <option value="15">15</option>
               <option value="30">30</option>
@@ -156,9 +187,10 @@ const Checkin = () => {
             <select
               name="checkinAMPM"
               id="checkinAMPM"
-              defaultValue="AM"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
@@ -170,9 +202,10 @@ const Checkin = () => {
             <select
               name="checkoutHour"
               id="checkoutHour"
-              defaultValue="9"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -190,9 +223,10 @@ const Checkin = () => {
             <select
               name="checkoutMin"
               id="checkoutMin"
-              defaultValue="00"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="00">00</option>
               <option value="15">15</option>
               <option value="30">30</option>
@@ -201,9 +235,10 @@ const Checkin = () => {
             <select
               name="checkoutAMPM"
               id="checkoutAMPM"
-              defaultValue="PM"
+              defaultValue=""
               onChange={handleChange}
             >
+              <option value=""></option>
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
@@ -230,8 +265,7 @@ const Checkin = () => {
           </div>
         </div>
         <p id="disclaimer">
-          * Please try to overestimate how long you think you're going to be at
-          the club for!
+          * Click <a href="https://www.recservices.iastate.edu/wp-content/uploads/2023/08/FALL-2023-HOURS.pdf" target="_blank">here</a> to view Beyer Hall hours.
         </p>
         <div className="button" id="submit-button" onClick={submit}>
           Submit »

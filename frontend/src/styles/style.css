@@ -28,19 +28,12 @@ p {
     margin-bottom: 10px;
 }
 
-.home, .checkin {
+.home, .checkin, .about {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
-
-.availability-graph {
-    width: 90%;
-    height: 400px;
-    margin-bottom: 25px;
-}
-
 
 .button, .button a {
     background-color: #f1bc45;
@@ -57,14 +50,4 @@ p {
     cursor: pointer;
 }
 
-.current-members {
-    margin-top: 25px;
-}
 
-.open {
-    color: green;
-}
-
-.closed {
-    color: red;
-}
