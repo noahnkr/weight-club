@@ -5,19 +5,91 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
+    margin-bottom: 20px;
 }
 
-.arrow {
-    width: 2.5%;
+
+.date-controller {
     display: flex;
+    width: 100%;
+    height: 30px;
+    justify-content: center;
     align-items: center;
-    text-align: right;
+    margin-bottom: 10px;
+}
+
+.date-container {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0 20px;
+}
+
+.left,
+.right {
+    cursor: pointer;
+    user-select: none;
+}
+
+.left:hover,
+.right:hover {
+    transform: scale(1.1)
+}
+
+.slide-left-exit {
+    animation: slide-left-exit-animation 0.2s ease-out forwards;
+}
+
+.slide-left-enter {
+    animation: slide-left-enter-animation 0.2s ease-out forwards;
+}
+
+.slide-right-exit {
+    animation: slide-right-exit-animation 0.2s ease-out forwards;
+}
+
+.slide-right-enter {
+    animation: slide-right-enter-animation 0.2s ease-out forwards;
+}
+
+@keyframes slide-left-exit-animation {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+}
+
+@keyframes slide-left-enter-animation {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
+}
+
+@keyframes slide-right-exit-animation {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+}
+
+@keyframes slide-right-enter-animation {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
 }
 
 .availability-graph {
     width: 90%;
     height: 400px;
-    margin-bottom: 25px;
 }
 
 .current-members-container {

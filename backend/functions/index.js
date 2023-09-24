@@ -189,6 +189,26 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
   });
 });
 
+exports.collectionExists = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date } = req.query;
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      // date collection doesn't exist
+      if (collection.empty) {
+        res.status(200).send(false)
+        return
+      } else {
+        res.status(200).send(true);
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("There was an error.")
+    }
+  });
+});
+
 exports.createTomorrowCollection = functions.pubsub
   .schedule("0 0 * * *")
   .timeZone("America/Chicago")

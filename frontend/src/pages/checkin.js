@@ -264,7 +264,7 @@ const Checkin = () => {
             </div>
           </div>
         </div>
-        <p id="disclaimer">
+        <p className="disclaimer">
           * Click <a href="https://www.recservices.iastate.edu/wp-content/uploads/2023/08/FALL-2023-HOURS.pdf" target="_blank">here</a> to view Beyer Hall hours.
         </p>
         <div className="button" id="submit-button" onClick={submit}>

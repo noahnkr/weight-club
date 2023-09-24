@@ -7,25 +7,19 @@ body {
     font-family: Arial, sans-serif;
 }
 
-h1 {
-
-}
-
-h2 {
-
-}
-
-h3 {
-
-}
-
-p {
-    color: #89847E;
-}
-
 .heading {
     font-size: 28px;
     margin-bottom: 10px;
+}
+
+.subheading {
+    font-size: 18px;
+    color: #75726d;
+}
+
+.disclaimer {
+    text-align: center;
+    color: #89847E;
 }
 
 .home, .checkin, .about {

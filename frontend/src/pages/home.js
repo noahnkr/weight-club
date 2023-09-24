@@ -27,10 +27,10 @@ const Home = () => {
   useEffect(() => {
     let dateString = new Date().toLocaleDateString().replace(/\//g, "-");
     let dateArr = dateString.split("-");
-    let day = dateArr[0].length == 1 ? `0${dateArr[0]}` : dateArr[0];
-    let month = dateArr[1].length == 1 ? `0${dateArr[1]}` : dateArr[1];
+    let day = dateArr[1].length == 1 ? `0${dateArr[1]}` : dateArr[1];
+    let month = dateArr[0].length == 1 ? `0${dateArr[0]}` : dateArr[0];
     let year = dateArr[2];
-    dateString = `${year}-${day}-${month}`;
+    dateString = `${year}-${month}-${day}`;
 
     let timeString = new Date().toLocaleTimeString();
     timeString =
@@ -58,32 +58,10 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    async function fetchData() {
-      const times = await getTimes();
-
-      const fetchedMemberCount = await getMemberCount();
-      const fetchedHsoCount = await getHsoCount();
-      const newData = times.map((time12) => {
-        let time24 = convertTo24Hour(time12);
-        return {
-          time: time12,
-          memberCount: fetchedMemberCount[time24],
-          hsoCount: fetchedHsoCount[time24],
-        };
-      });
-      setChartData(newData);
-      setMemberCount(fetchedMemberCount);
-      setHsoCount(fetchedHsoCount);
-
-      const newMemberData = await getMembers();
-      const newHsoData = await getHso();
-      setMemberData(newMemberData);
-      setHsoData(newHsoData);
-    }
-
     if (date !== "" && date !== undefined) {
       fetchData();
     }
+
   }, [date]);
 
   useEffect(() => {
@@ -101,6 +79,29 @@ const Home = () => {
       console.log("Club is Closed");
     }
   }, [memberCount]);
+
+  async function fetchData() {
+    const times = await getTimes();
+
+    const fetchedMemberCount = await getMemberCount();
+    const fetchedHsoCount = await getHsoCount();
+    const newData = times.map((time12) => {
+      let time24 = convertTo24Hour(time12);
+      return {
+        time: time12,
+        memberCount: fetchedMemberCount[time24],
+        hsoCount: fetchedHsoCount[time24],
+      };
+    });
+    setChartData(newData);
+    setMemberCount(fetchedMemberCount);
+    setHsoCount(fetchedHsoCount);
+
+    const newMemberData = await getMembers();
+    const newHsoData = await getHso();
+    setMemberData(newMemberData);
+    setHsoData(newHsoData);
+  }
 
   async function getTimes() {
     try {
@@ -172,6 +173,19 @@ const Home = () => {
     }
   }
 
+  async function collectionExists(reqDate) {
+    try {
+      const res = await fetch(
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/collectionExists?date=${reqDate}`,
+        { method: "GET" }
+      );
+      return await res.json();
+    } catch (err) {
+      console.log(err);
+      return false;
+    }
+  }
+
   function convertTo24Hour(time12) {
     const [time, period] = time12.split(" ");
     let [hours, minutes] = time.split(":");
@@ -199,9 +213,85 @@ const Home = () => {
     return `${hours12}:${mins} ${period}`;
   }
 
+  function formatDate(unformattedDate) {
+    let dateString = unformattedDate.toISOString().split("T")[0];
+    let dateArr = dateString.split("-");
+    let day = dateArr[2].length == 1 ? `0${dateArr[2]}` : dateArr[2];
+    let month = dateArr[1].length == 1 ? `0${dateArr[1]}` : dateArr[1];
+    let year = dateArr[0];
+    return `${year}-${month}-${day}`;
+  }
+
+  const [showLeftArrow, setShowLeftArrow] = useState(true);
+  function handleLeftArrow() {
+    setAnimationClass('slide-left-exit');
+
+    let newDate = new Date(date);
+    newDate.setDate(newDate.getDate() - 1);
+
+    let nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() - 2);
+
+    setDate(formatDate(newDate));
+    collectionExists(formatDate(nextDate)).then(res => {
+      setShowLeftArrow(res);
+      setShowRightArrow(true);
+    })
+   
+
+    setTimeout(() => {
+      setAnimationClass('slide-left-enter');
+    }, [100])
+
+    setTimeout(() => {
+      setAnimationClass('');
+    }, [200])
+  }
+
+  const [showRightArrow, setShowRightArrow] = useState(true);
+  function handleRightArrow() {
+    setAnimationClass('slide-right-exit');
+
+    let newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + 1);
+    setDate(formatDate(newDate));
+
+    let nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 2);
+
+    setDate(formatDate(newDate));
+    collectionExists(formatDate(nextDate)).then(res => {
+      setShowRightArrow(res);
+      setShowLeftArrow(true);
+    })
+    
+
+    setTimeout(() => {
+      setAnimationClass('slide-right-enter');
+    }, [100])
+
+    setTimeout(() => {
+      setAnimationClass('');
+    }, [200])
+  }
+
+  const [animationClass, setAnimationClass] = useState('');
+
   return (
     <div className="home">
       <h1 className="heading">Availability</h1>
+      <div className="date-controller">
+        {showLeftArrow ? <div className="left" onClick={handleLeftArrow}>
+          <h3 className="subheading">&lt;</h3>
+        </div> : <></>}
+        <div className="date-container">
+          <h3 className={`date subheading ${animationClass}`}>{date}</h3>
+        </div>
+        {showRightArrow ? <div className="right" onClick={handleRightArrow}>
+          <h3 className="subheading">&gt;</h3>
+        </div> : <></>}
+      </div>
+      
       <div className="graph-container">
           {chartData.length !== 0 ? (
             <div className="availability-graph">

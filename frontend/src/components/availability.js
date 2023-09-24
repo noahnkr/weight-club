@@ -44,7 +44,6 @@ const Availability = ({ chartData, memberData, hsoData, date }) => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      title: { display: true, text: date },
       zoom: {
         zoom: {
           wheel: { enabled: true },
