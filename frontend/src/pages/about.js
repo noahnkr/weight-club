@@ -1,4 +1,5 @@
 const About = () => {
+    document.title = "ISU Weight Club | About"
 
     return (
         <div className="about">

@@ -8,6 +8,11 @@
     margin-bottom: 20px;
 }
 
+.availability-graph {
+    width: 90%;
+    height: 400px;
+}
+
 
 .date-controller {
     display: flex;
@@ -87,24 +92,3 @@
     }
 }
 
-.availability-graph {
-    width: 90%;
-    height: 400px;
-}
-
-.current-members-container {
-    margin-top: 25px;
-}
-
-.current-members {
-    display: flex;
-    flex-direction: row;
-}
-
-.open {
-    color: green;
-}
-
-.closed {
-    color: red;
-}

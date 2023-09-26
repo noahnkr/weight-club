@@ -112,8 +112,8 @@ exports.getTimes = functions.https.onRequest((req, res) => {
 
 exports.memberCheckIn = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
-    const { date } = req.query;
-    const { name, range } = req.body;
+    const { date, name } = req.query;
+    const { range } = req.body;
     const batch = database.batch();
 
     try {
@@ -128,12 +128,13 @@ exports.memberCheckIn = functions.https.onRequest((req, res) => {
             if (!members.includes(name)) {
               members.push(name);
               batch.update(docRef, { members: members });
-            } else {
-              res.status(409).send("Name already exists in time range.");
-              return;
-            }
+            } 
           } else {
-            res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
+            res
+              .status(404)
+              .send(
+                "Cannot check in at the given time. Please make sure the club is open during the time range."
+              );
             return;
           }
         }
@@ -149,11 +150,10 @@ exports.memberCheckIn = functions.https.onRequest((req, res) => {
   });
 });
 
-
 exports.hsoCheckIn = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
-    const { date } = req.query;
-    const { name, range } = req.body;
+    const { date, name } = req.query;
+    const { range } = req.body;
     const batch = database.batch();
 
     try {
@@ -168,9 +168,6 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
             if (!hso.includes(name)) {
               hso.push(name);
               batch.update(docRef, { hso: hso });
-            } else {
-              res.status(409).send("Name already exists in time range.");
-              return;
             }
           } else {
             res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
@@ -189,6 +186,179 @@ exports.hsoCheckIn = functions.https.onRequest((req, res) => {
   });
 });
 
+exports.deleteCheckIn = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date, name } = req.query;
+    const { range } = req.body;
+    const batch = database.batch();
+
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (!collection.empty) {
+        for (const time of range) {
+          const docRef = collectionRef.doc(time);
+          const doc = await docRef.get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.members.includes(name)) {
+              const members = data.members.filter(member => member !== name);
+              batch.update(docRef, {
+                members: members
+              });
+            } else if (data.hso.includes(name)) {
+              const hso = data.hso.filter(hso => hso !== name)
+              batch.update(docRef, {
+                hso: hso
+              });
+            }
+          } else {
+            res.status(404).send(`Cannot delete document ${time} on ${date} because document does not exist.`);
+            return;
+          }
+        };
+
+        await batch.commit();
+        res.status(200).send("Successfully deleted checkin.")
+      } else {
+        res.status(404).send(`Cannot delete range at date ${date} because the date does not exist.`)
+      }
+
+    } catch (err) {
+      res.status(500).send("There was an error deleting the checkin.")
+
+    }
+  });
+});
+
+
+exports.deleteMemberCheckIn = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date, name } = req.query;
+    const { range } = req.body;
+    const batch = database.batch();
+
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (!collection.empty) {
+        for (const time of range) {
+          const docRef = collectionRef.doc(time);
+          const doc = await docRef.get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.members.includes(name)) {
+              const members = data.members.filter(member => member !== name);
+              batch.update(docRef, {
+                members: members
+              });
+            } else if (data.hso.includes(name)) {
+              const hso = data.hso.filter(hso => hso !== name)
+              batch.update(docRef, {
+                hso: hso
+              });
+            }
+          } else {
+            res.status(404).send(`Cannot delete document ${time} on ${date} because document does not exist.`);
+            return;
+          }
+        };
+
+        await batch.commit();
+        res.status(200).send("Successfully deleted checkin.")
+      } else {
+        res.status(404).send(`Cannot delete range at date ${date} because the date does not exist.`)
+      }
+
+    } catch (err) {
+      res.status(500).send("There was an error deleting the checkin.")
+
+    }
+  });
+});
+
+exports.deleteHsoCheckIn = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date, name } = req.query;
+    const { range } = req.body;
+    const batch = database.batch();
+
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (!collection.empty) {
+        for (const time of range) {
+          const docRef = collectionRef.doc(time);
+          const doc = await docRef.get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.hso.includes(name)) {
+              const hso = data.hso.filter(hso => hso !== name)
+              batch.update(docRef, {
+                hso: hso
+              });
+            }
+          } else {
+            res.status(404).send(`Cannot delete document ${time} on ${date} because document does not exist.`);
+            return;
+          }
+        };
+
+        await batch.commit();
+        res.status(200).send("Successfully deleted checkin.")
+      } else {
+        res.status(404).send(`Cannot delete range at date ${date} because the date does not exist.`)
+      }
+
+    } catch (err) {
+      res.status(500).send("There was an error deleting the checkin.")
+
+    }
+  });
+});
+
+exports.getCheckedInTimeRanges = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    const { date, name } = req.query;
+    const ranges = [];
+    let checkInTime = ""
+    let checkOutTime = "";
+    let isHso = false;
+
+    try {
+      const collectionRef = database.collection(date);
+      const collection = await collectionRef.get();
+      if (!collection.empty) {
+        collection.forEach(doc => {
+          const data = doc.data();
+          if (data.members.includes(name) || data.hso.includes(name)) {
+            if (checkInTime === "" && checkOutTime === "") {
+              checkInTime = doc.id;
+              isHso = data.hso.includes(name);
+            } else if (checkInTime !== "") {
+              checkOutTime = doc.id;
+            }
+          } else if (checkInTime !== "" && checkOutTime !== "") {
+              ranges.push({
+                checkIn: checkInTime,
+                checkOut: checkOutTime,
+                isHso: isHso
+              });
+              checkInTime = "";
+              checkOutTime = "";
+              isHso = false;
+            }
+          });
+        res.status(200).send(ranges);
+      } else {
+        res.status(404).send(`Date ${date} does not exist yet.`);
+      }
+    } catch (err) {
+      res.status(500).send("There was an error.");
+    }
+  });
+});
+
 exports.collectionExists = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const { date } = req.query;
@@ -197,19 +367,19 @@ exports.collectionExists = functions.https.onRequest((req, res) => {
       const collection = await collectionRef.get();
       // date collection doesn't exist
       if (collection.empty) {
-        res.status(200).send(false)
-        return
+        res.status(200).send(false);
+        return;
       } else {
         res.status(200).send(true);
       }
     } catch (err) {
       console.log(err);
-      res.status(500).send("There was an error.")
+      res.status(500).send("There was an error.");
     }
   });
 });
 
-exports.createTomorrowCollection = functions.pubsub
+exports.createNextDateCollection = functions.pubsub
   .schedule("0 0 * * *")
   .timeZone("America/Chicago")
   .onRun(async (ctx) => {
@@ -219,16 +389,19 @@ exports.createTomorrowCollection = functions.pubsub
 
     let range;
     let dayOfWeek = day.getDay();
-  
-    // weekday
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      range = generateTimeRange("6:00 AM", "8:45 PM");
-    // saturday
+
+    // mon, tues, wed, pr thur
+    if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+      range = generateTimeRange("6:00 AM", "11:45 PM");
+      // friday
+    } else if (dayOfWeek == 5) {
+      range = generateTimeRange("6:00 AM", "9:45 PM");
+      // saturday
     } else if (dayOfWeek == 6) {
       range = generateTimeRange("8:00 AM", "5:45 PM");
-    // sunday
+      // sunday
     } else {
-      range = generateTimeRange("12:00 PM", "5:45 PM");
+      range = generateTimeRange("8:00 AM", "11:45 PM");
     }
 
     const batch = database.batch();

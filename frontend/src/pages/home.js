@@ -13,15 +13,12 @@ TODO:
 */
 
 const Home = () => {
+  document.title = "ISU Weight Club | Home";
   const [date, setDate] = useState("");
-  const [currentTime, setCurrentTime] = useState("");
+  const [time, setTime] = useState("");
   const [chartData, setChartData] = useState([]);
   const [memberData, setMemberData] = useState({});
-  const [memberCount, setMemberCount] = useState({});
   const [hsoData, setHsoData] = useState({});
-  const [hsoCount, setHsoCount] = useState({});
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentMembers, setCurrentMembers] = useState([]);
 
   // Determine current Date & Time
   useEffect(() => {
@@ -51,7 +48,7 @@ const Home = () => {
       timeString.substring(timeString.length - 3, timeString.length);
 
     setDate(dateString);
-    setCurrentTime(timeString);
+    setTime(timeString);
 
     console.log("Current Date: ", dateString);
     console.log("Current Time: ", timeString);
@@ -63,22 +60,6 @@ const Home = () => {
     }
 
   }, [date]);
-
-  useEffect(() => {
-    let currentTime24 = convertTo24Hour(currentTime);
-    setCurrentMembers(memberData[currentTime24]);
-
-    if (
-      memberCount[currentTime24] + hsoCount[currentTime24] >= 3 &&
-      hsoCount[currentTime24] > 0
-    ) {
-      setIsOpen(true);
-      console.log("Club is Open");
-    } else {
-      setIsOpen(false);
-      console.log("Club is Closed");
-    }
-  }, [memberCount]);
 
   async function fetchData() {
     const times = await getTimes();
@@ -94,8 +75,6 @@ const Home = () => {
       };
     });
     setChartData(newData);
-    setMemberCount(fetchedMemberCount);
-    setHsoCount(fetchedHsoCount);
 
     const newMemberData = await getMembers();
     const newHsoData = await getHso();
@@ -186,42 +165,6 @@ const Home = () => {
     }
   }
 
-  function convertTo24Hour(time12) {
-    const [time, period] = time12.split(" ");
-    let [hours, minutes] = time.split(":");
-
-    if (period === "PM" && hours !== "12") {
-      hours = String(parseInt(hours) + 12);
-    } else if (period === "AM" && hours === "12") {
-      hours = "00";
-    }
-
-    hours = hours.padStart(2, "0");
-    return `${hours}:${minutes}`;
-  }
-
-  function convertTo12Hour(time24) {
-    const [hours, mins] = time24.split(":");
-    let period = "AM";
-    let hours12 = parseInt(hours);
-    if (hours12 >= 12) {
-      period = "PM";
-      if (hours12 > 12) {
-        hours12 -= 12;
-      }
-    }
-    return `${hours12}:${mins} ${period}`;
-  }
-
-  function formatDate(unformattedDate) {
-    let dateString = unformattedDate.toISOString().split("T")[0];
-    let dateArr = dateString.split("-");
-    let day = dateArr[2].length == 1 ? `0${dateArr[2]}` : dateArr[2];
-    let month = dateArr[1].length == 1 ? `0${dateArr[1]}` : dateArr[1];
-    let year = dateArr[0];
-    return `${year}-${month}-${day}`;
-  }
-
   const [showLeftArrow, setShowLeftArrow] = useState(true);
   function handleLeftArrow() {
     setAnimationClass('slide-left-exit');
@@ -232,11 +175,13 @@ const Home = () => {
     let nextDate = new Date(date);
     nextDate.setDate(nextDate.getDate() - 2);
 
+    setChartData([]);
     setDate(formatDate(newDate));
     collectionExists(formatDate(nextDate)).then(res => {
       setShowLeftArrow(res);
       setShowRightArrow(true);
-    })
+    });
+    
    
 
     setTimeout(() => {
@@ -259,6 +204,7 @@ const Home = () => {
     let nextDate = new Date(date);
     nextDate.setDate(nextDate.getDate() + 2);
 
+    setChartData([]);
     setDate(formatDate(newDate));
     collectionExists(formatDate(nextDate)).then(res => {
       setShowRightArrow(res);
@@ -317,18 +263,71 @@ const Home = () => {
           Check In »
         </Link>
       </div>
-      <div className="current-members-container">
-        <h2>
-          The Club is{" "}
-          {isOpen ? (
-            <span className="open">OPEN</span>
-          ) : (
-            <span className="closed">CLOSED</span>
-          )}
-        </h2>
-      </div>
     </div>
   );
 };
 
+export function convertTo24Hour(time12) {
+  const [time, period] = time12.split(" ");
+  let [hours, minutes] = time.split(":");
+
+  if (period === "PM" && hours !== "12") {
+    hours = String(parseInt(hours) + 12);
+  } else if (period === "AM" && hours === "12") {
+    hours = "00";
+  }
+
+  hours = hours.padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+export function convertTo12Hour(time24) {
+  const [hours, mins] = time24.split(":");
+  let period = "AM";
+  let hours12 = parseInt(hours);
+  if (hours12 >= 12) {
+    period = "PM";
+    if (hours12 > 12) {
+      hours12 -= 12;
+    }
+  }
+  return `${hours12}:${mins} ${period}`;
+}
+
+export function formatDate(unformattedDate) {
+  let dateString = unformattedDate.toISOString().split("T")[0];
+  let dateArr = dateString.split("-");
+  let day = dateArr[2].length == 1 ? `0${dateArr[2]}` : dateArr[2];
+  let month = dateArr[1].length == 1 ? `0${dateArr[1]}` : dateArr[1];
+  let year = dateArr[0];
+  return `${year}-${month}-${day}`;
+}
+
+export function formatName(first, last) {
+  let formattedFirst = first.replace(" ", "");
+  formattedFirst = formattedFirst.charAt().toUpperCase() + formattedFirst.slice(1);
+
+  let formattedLast = last.replace(" ", "");
+  formattedLast = formattedLast.charAt().toUpperCase() + formattedLast.slice(1);
+
+  return `${formattedFirst} ${formattedLast}`;
+}
+
+export function generateTimeRange(startTime12hr, endTime12hr) {
+  const start24hr = new Date(
+    `1970-01-01 ${convertTo24Hour(startTime12hr)}`
+  );
+  const end24hr = new Date(
+    `1970-01-01 ${convertTo24Hour(endTime12hr)}`
+  );
+  const timeArray = [];
+
+  while (start24hr <= end24hr) {
+    const timeString = start24hr.toTimeString().slice(0, 5);
+    timeArray.push(timeString);
+    start24hr.setMinutes(start24hr.getMinutes() + 15);
+  }
+
+  return timeArray;
+}
 export default Home;

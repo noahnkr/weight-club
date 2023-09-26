@@ -22,7 +22,7 @@ body {
     color: #89847E;
 }
 
-.home, .checkin, .about {
+.home, .checkin, .update, .about {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -43,5 +43,4 @@ body {
     color: #f1bc45;
     cursor: pointer;
 }
-
 

@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { TailSpin } from "react-loader-spinner";
+import { formatName, generateTimeRange } from "./home";
 import "../styles/checkin.css";
 
 const Checkin = () => {
+  document.title = "ISU Weight Club | Check-in";
+
+  const navigate = useNavigate();
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [date, setDate] = useState("");
@@ -12,6 +19,12 @@ const Checkin = () => {
   const [checkoutMin, setCheckoutMin] = useState("");
   const [checkoutAMPM, setCheckoutAMPM] = useState("");
   const [isHso, setisHso] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [update_firstName, setUpdate_firstName] = useState("");
+  const [update_lastName, setUpdate_lastName] = useState("");
+  const [update_date, setUpdate_date] = useState("");
+  const [update_submitting, setUpdate_submitting] = useState(false);
 
   function handleChange(e) {
     let name = e.target.name;
@@ -34,10 +47,16 @@ const Checkin = () => {
       }
     } else if (name === "firstName") {
       setFirstName(value);
+    } else if (name === "update_firstName") {
+      setUpdate_firstName(value);
     } else if (name === "lastName") {
       setLastName(value);
+    } else if (name === "update_lastName") {
+      setUpdate_lastName(value);
     } else if (name === "date") {
       setDate(value);
+    } else if (name === "update_date") {
+      setUpdate_date(value);
     } else if (name === "member") {
       setisHso(false);
     } else if (name === "hso") {
@@ -50,11 +69,10 @@ const Checkin = () => {
     const checkin = `${checkinHour}:${checkinMin} ${checkinAMPM}`;
     const checkout = `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`;
     const range = generateTimeRange(checkin, checkout);
-    const name = `${firstName} ${lastName}`;
+    const name = formatName(firstName, lastName);
 
     if (firstName === "" || lastName === "" || date === "") {
-      alert("Please enter a name and/or date.");
-      return;
+      alert("Please enter a name and/or date."); return;
     } else if (
       checkinHour === "" ||
       checkinMin === "" ||
@@ -63,73 +81,101 @@ const Checkin = () => {
       checkoutMin === "" ||
       checkoutAMPM === ""
     ) {
-      alert("Please enter a checkin/checkout time.");
-      return;
+      alert("Please enter a checkin/checkout time."); return;
     } else if (range.length === 1) {
-      alert("Must check in for atleast 30 minutes.");
-      return;
+      alert("Must check in for atleast 30 minutes."); return;
     } else if (range.length === 0) {
-      alert("Check in time must be before check out time.");
-      return;
+      alert("Check in time must be before check out time."); return;
     }
+
+   
+    setSubmitting(true);
 
     fetch(
       `https://us-central1-weight-club-e16e5.cloudfunctions.net/${
         isHso ? "hso" : "member"
-      }CheckIn?date=${date}`,
+      }CheckIn?date=${date}&name=${name}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name,
           range: range,
         }),
       }
     )
       .then((res) => {
+        setSubmitting(false);
         if (!res.ok) {
           return res.text().then((err) => {
             throw new Error(err);
           });
         } else {
-          alert(`Successfully checked in from ${checkin} to ${checkout} on ${date}.`);
+          alert(
+            `Successfully checked in from ${checkin} to ${checkout} on ${date}.`
+          );
+          navigate('../');
         }
       })
-      .catch((err) => alert(err.message));
+      .catch((err) => {
+        setSubmitting(false);
+        alert(err.message);
+      });
+
+    setTimeout(() => {
+      if (submitting) {
+        alert(`Unable to checkin due to connection issues.`);
+      }
+      setSubmitting(false);
+    }, [5000]);
   }
 
-  function generateTimeRange(startTime12hr, endTime12hr) {
-    function convertTo24HourFormat(time12hr) {
-      const [time, period] = time12hr.split(" ");
-      const [hours, minutes] = time.split(":");
+  async function update(e) {
+    e.preventDefault();
+    if (
+      update_firstName === "" ||
+      update_lastName === "" ||
+      update_date === ""
+    ) {
+      alert("Please enter a name and/or date.");
+      return;
+    }
 
-      let hours24 = parseInt(hours);
+    const name = formatName(update_firstName, update_lastName);
+    setUpdate_submitting(true);
 
-      if (period.toLowerCase() === "pm" && hours24 !== 12) {
-        hours24 += 12;
-      } else if (period.toLowerCase() === "am" && hours24 === 12) {
-        hours24 = 0;
+    fetch(
+      `https://us-central1-weight-club-e16e5.cloudfunctions.net/getCheckedInTimeRanges?date=${update_date}&name=${name}`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
       }
-
-      const formattedHours = hours24.toString().padStart(2, "0");
-      return `${formattedHours}:${minutes}`;
-    }
-
-    const start24hr = new Date(
-      `1970-01-01 ${convertTo24HourFormat(startTime12hr)}`
-    );
-    const end24hr = new Date(
-      `1970-01-01 ${convertTo24HourFormat(endTime12hr)}`
-    );
-    const timeArray = [];
-
-    while (start24hr <= end24hr) {
-      const timeString = start24hr.toTimeString().slice(0, 5);
-      timeArray.push(timeString);
-      start24hr.setMinutes(start24hr.getMinutes() + 15);
-    }
-
-    return timeArray;
+    )
+      .then((res) => {
+        setUpdate_submitting(false);
+        if (!res.ok) {
+          return res.text().then((err) => {
+            throw new Error(err);
+          });
+        } else {
+          res.json().then(ranges => {
+            if (ranges.length > 0) {
+              navigate("../update", {
+                state: {
+                  date: update_date,
+                  name: name,
+                },
+              });
+            } else {
+              alert(`No checkin found for ${name} on ${update_date}.`)
+            }
+          })
+          
+        }
+      })
+      .catch((err) => {
+        setUpdate_submitting(false);
+        alert(err.message);
+      });
   }
 
   return (
@@ -265,11 +311,57 @@ const Checkin = () => {
           </div>
         </div>
         <p className="disclaimer">
-          * Click <a href="https://www.recservices.iastate.edu/wp-content/uploads/2023/08/FALL-2023-HOURS.pdf" target="_blank">here</a> to view Beyer Hall hours.
+          * Click{" "}
+          <a
+            href="https://www.recservices.iastate.edu/wp-content/uploads/2023/08/FALL-2023-HOURS.pdf"
+            target="_blank"
+          >
+            here
+          </a>{" "}
+          to view Beyer Hall hours.
         </p>
-        <div className="button" id="submit-button" onClick={submit}>
-          Submit »
+        {submitting ? (
+          <TailSpin
+            height="150"
+            width="150"
+            color="#89847E"
+            wrapperClass="loader"
+          />
+        ) : (
+          <div className="button" id="submit-button" onClick={submit}>
+            Submit »
+          </div>
+        )}
+      </div>
+      <h1 className="heading" id="update-message">
+        Already Checked In?
+      </h1>
+      <div className="checkin-form">
+        <div className="input-container">
+          <label htmlFor="update_firstName">First Name</label>
+          <input type="text" name="update_firstName" onChange={handleChange} />
         </div>
+        <div className="input-container">
+          <label htmlFor="update_lastName">Last Name</label>
+          <input type="text" name="update_lastName" onChange={handleChange} />
+        </div>
+        <div className="input-container">
+          <label htmlFor="update_date">Date</label>
+          <input type="date" name="update_date" onChange={handleChange} />
+        </div>
+        {update_submitting ? (
+          <TailSpin 
+            height="150"
+            width="150"
+            color="#89847E"
+            wrapperClass="loader"
+          />
+        ) : (
+          <div className="button" id="submit-button" onClick={update}>
+            Update »
+          </div>
+        )}
+       
       </div>
     </div>
   );
