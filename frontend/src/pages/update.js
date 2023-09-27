@@ -105,56 +105,52 @@ const Update = () => {
     if (
         window.confirm(
             `Are you sure you want to update checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${date}?`)) {
-                const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
+            const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
 
-                setSubmitting(true);
-                fetch(
-                    `https://us-central1-weight-club-e16e5.cloudfunctions.net/delete${ranges[id].isHso ? "Hso" : "Member"}CheckIn?date=${date}&name=${name}`, 
-                    { 
-                        method: "DELETE",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            range: deletedRange
-                        })
-                     }
-                ).then(res => {
-                    if (!res.ok) {
-                        return res.text().then((err) => {
-                          throw new Error(err);
-                        });
-                      } else {
-                        const newRange = generateTimeRange(`${checkinHour}:${checkinMin} ${checkinAMPM}`, `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`);
-                        fetch(
-                            `https://us-central1-weight-club-e16e5.cloudfunctions.net/${ranges[id].isHso ? "hso" : "member"}CheckIn?date=${date}&name=${name}`,
-                            {
-                              method: "PUT",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                range: newRange,
-                              }),
-                            }
-                          )
-                            .then((res) => {
-                              if (!res.ok) {
-                                return res.text().then((err) => {
-                                  throw new Error(err);
-                                });
-                              } else {
-                                    setSubmitting(false);
-                                    alert(`Successfully updated checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${date}.`);
-                                    
-                                    navigate('../');
-                              }
-                            })
-                            .catch((err) => {
-                              setSubmitting(false);
-                              alert(err.message);
+            setSubmitting(true);
+            fetch(
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/delete${ranges[id].isHso ? "Hso" : "Member"}CheckIn?date=${date}&name=${name}`, 
+                { 
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        range: deletedRange
+                    })
+                  }
+            ).then(res => {
+                if (!res.ok) {
+                    return res.text().then((err) => {
+                      throw new Error(err);
+                    });
+                  } else {
+                    const newRange = generateTimeRange(`${checkinHour}:${checkinMin} ${checkinAMPM}`, `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`);
+                    fetch(
+                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${ranges[id].isHso ? "hso" : "member"}CheckIn?date=${date}&name=${name}`,
+                        {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            range: newRange,
+                          }),
+                        }
+                      )
+                        .then((res) => {
+                          if (!res.ok) {
+                            return res.text().then((err) => {
+                              throw new Error(err);
                             });
-                              }
-                }).catch(err => {
-                    setSubmitting(false);
-                    alert(err.message);
-                });
+                          } else {
+                                setSubmitting(false);
+                                alert(`Successfully updated checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${date}.`);
+                                
+                                navigate('../');
+                          }
+                        });
+                      }
+            }).catch(err => {
+                setSubmitting(false);
+                alert(err.message);
+            });
     }
     
   }
@@ -184,7 +180,7 @@ const Update = () => {
                 alert(
                   `Successfully deleted checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} on ${date}.`
                 );
-                navigate('../')
+                navigate('../');
               }
         }).catch(err => {
             setSubmitting(false);
