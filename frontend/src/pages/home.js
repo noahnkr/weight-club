@@ -14,8 +14,9 @@ TODO:
 
 const Home = () => {
   document.title = "ISU Weight Club | Home";
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [dataCache, setDataCache] = useState({});
+  const [currentDate, setCurrentDate] = useState("");
+  const [currentTime, setCurrentTime] = useState("");
   const [chartData, setChartData] = useState([]);
   const [memberData, setMemberData] = useState({});
   const [hsoData, setHsoData] = useState({});
@@ -47,45 +48,59 @@ const Home = () => {
       min +
       timeString.substring(timeString.length - 3, timeString.length);
 
-    setDate(dateString);
-    setTime(timeString);
+    setCurrentDate(dateString);
+    setCurrentTime(timeString);
 
     console.log("Current Date: ", dateString);
     console.log("Current Time: ", timeString);
   }, []);
 
   useEffect(() => {
-    if (date !== "" && date !== undefined) {
-      fetchData();
+    if (currentDate !== "" && currentDate !== undefined) {
+        fetchData();
     }
-
-  }, [date]);
+  }, [currentDate]);
 
   async function fetchData() {
-    const times = await getTimes();
+    if (dataCache[currentDate]) {
+        setChartData(dataCache[currentDate].chartData);
+        setMemberData(dataCache[currentDate].memberData);
+        setHsoData(dataCache[currentDate].hsoData);
+     } else {
+        console.log("fetching data...")
+        const times = await getTimes();
+        const currentMemberCount = await getMemberCount();
+        const currentHsoCount = await getHsoCount();
+        const currentMemberData = await getMembers();
+        const currentHsoData = await getHso();
 
-    const fetchedMemberCount = await getMemberCount();
-    const fetchedHsoCount = await getHsoCount();
-    const newData = times.map((time12) => {
-      let time24 = convertTo24Hour(time12);
-      return {
-        time: time12,
-        memberCount: fetchedMemberCount[time24],
-        hsoCount: fetchedHsoCount[time24],
-      };
-    });
-    setChartData(newData);
+        const currentChartData = times.map((time12) => {
+          let time24 = convertTo24Hour(time12);
+          return {
+            time: time12,
+            memberCount: currentMemberCount[time24],
+            hsoCount: currentHsoCount[time24],
+          };
+        });
 
-    const newMemberData = await getMembers();
-    const newHsoData = await getHso();
-    setMemberData(newMemberData);
-    setHsoData(newHsoData);
+        setChartData(currentChartData);
+        setMemberData(currentMemberData);
+        setHsoData(currentHsoData);
+
+        const newDataCache = { ...dataCache };
+        newDataCache[currentDate] = {
+          chartData: currentChartData,
+          memberData: currentMemberData,
+          hsoData: currentHsoData
+        }
+        setDataCache(newDataCache);
+     }
   }
 
   async function getTimes() {
     try {
       const res = await fetch(
-        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getTimes?date=${date}`,
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getTimes?date=${currentDate}`,
         { method: "GET" }
       );
       const times24 = await res.json();
@@ -99,7 +114,7 @@ const Home = () => {
   async function getMemberCount() {
     try {
       const res = await fetch(
-        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getMemberCount?date=${date}`,
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getMemberCount?date=${currentDate}`,
         { method: "GET" }
       );
       const count = await res.json();
@@ -113,7 +128,7 @@ const Home = () => {
   async function getHsoCount() {
     try {
       const res = await fetch(
-        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getHsoCount?date=${date}`,
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getHsoCount?date=${currentDate}`,
         { method: "GET" }
       );
       const count = await res.json();
@@ -127,7 +142,7 @@ const Home = () => {
   async function getMembers() {
     try {
       const res = await fetch(
-        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getMembers?date=${date}`,
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getMembers?date=${currentDate}`,
         { method: "GET" }
       );
       const members = await res.json();
@@ -141,7 +156,7 @@ const Home = () => {
   async function getHso() {
     try {
       const res = await fetch(
-        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getHso?date=${date}`,
+        `https://us-central1-weight-club-e16e5.cloudfunctions.net/getHso?date=${currentDate}`,
         { method: "GET" }
       );
       const members = await res.json();
@@ -169,21 +184,19 @@ const Home = () => {
   function handleLeftArrow() {
     setAnimationClass('slide-left-exit');
 
-    let newDate = new Date(date);
+    let newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() - 1);
 
-    let nextDate = new Date(date);
+    let nextDate = new Date(currentDate);
     nextDate.setDate(nextDate.getDate() - 2);
 
     setChartData([]);
-    setDate(formatDate(newDate));
+    setCurrentDate(formatDate(newDate));
     collectionExists(formatDate(nextDate)).then(res => {
       setShowLeftArrow(res);
       setShowRightArrow(true);
     });
     
-   
-
     setTimeout(() => {
       setAnimationClass('slide-left-enter');
     }, [100])
@@ -197,15 +210,15 @@ const Home = () => {
   function handleRightArrow() {
     setAnimationClass('slide-right-exit');
 
-    let newDate = new Date(date);
+    let newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + 1);
-    setDate(formatDate(newDate));
+    setCurrentDate(formatDate(newDate));
 
-    let nextDate = new Date(date);
+    let nextDate = new Date(currentDate);
     nextDate.setDate(nextDate.getDate() + 2);
 
     setChartData([]);
-    setDate(formatDate(newDate));
+    setCurrentDate(formatDate(newDate));
     collectionExists(formatDate(nextDate)).then(res => {
       setShowRightArrow(res);
       setShowLeftArrow(true);
@@ -231,7 +244,7 @@ const Home = () => {
           <h3 className="subheading">&lt;</h3>
         </div> : <></>}
         <div className="date-container">
-          <h3 className={`date subheading ${animationClass}`}>{date}</h3>
+          <h3 className={`date subheading ${animationClass}`}>{currentDate}</h3>
         </div>
         {showRightArrow ? <div className="right" onClick={handleRightArrow}>
           <h3 className="subheading">&gt;</h3>
@@ -245,7 +258,7 @@ const Home = () => {
                 chartData={chartData}
                 memberData={memberData}
                 hsoData={hsoData}
-                date={date}
+                date={currentDate}
               />
             </div>
           ) : (
