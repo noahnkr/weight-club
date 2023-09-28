@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TailSpin } from "react-loader-spinner";
-import { formatName, generateTimeRange } from "./home";
+import { formatDateToReadable, formatName, generateTimeRange } from "./home";
 import "../styles/checkin.css";
 
 const Checkin = () => {
@@ -111,7 +111,7 @@ const Checkin = () => {
           });
         } else {
           alert(
-            `Successfully checked in from ${checkin} to ${checkout} on ${date}.`
+            `Successfully checked in from ${checkin} - ${checkout} on ${formatDateToReadable(date)}.`
           );
           navigate('../');
         }
@@ -120,13 +120,6 @@ const Checkin = () => {
         setSubmitting(false);
         alert(err.message);
       });
-
-    setTimeout(() => {
-      if (submitting) {
-        alert(`Unable to checkin due to connection issues.`);
-      }
-      setSubmitting(false);
-    }, [5000]);
   }
 
   async function update(e) {
@@ -166,7 +159,7 @@ const Checkin = () => {
                 },
               });
             } else {
-              alert(`No checkin found for ${name} on ${update_date}.`)
+              alert(`No checkin found for ${name} on ${formatDateToReadable(update_date)}.`)
             }
           })
           

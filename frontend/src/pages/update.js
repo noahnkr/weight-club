@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { convertTo12Hour, generateTimeRange } from "./home";
+import { convertTo12Hour, generateTimeRange, formatDateToReadable } from "./home";
 import "../styles/checkin.css";
 import { TailSpin } from "react-loader-spinner";
 
@@ -16,6 +16,7 @@ const Update = () => {
   const [checkoutHour, setCheckoutHour] = useState([]);
   const [checkoutMin, setCheckoutMin] = useState([]);
   const [checkoutAMPM, setCheckoutAMPM] = useState([]);
+  const [isHso, setIsHso] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ const Update = () => {
       .then((resRanges) => {
         setRanges(resRanges);
 
-        const defaultValues = resRanges.map((range, index) => {
+        const defaultValues = resRanges.map(range => {
           const original_checkin = convertTo12Hour(range.checkIn);
           const original_checkout = convertTo12Hour(range.checkOut);
 
@@ -98,13 +99,17 @@ const Update = () => {
       } else if (name.includes("AMPM")) {
         setCheckoutAMPM(value);
       }
+    } else if (name === "member") {
+      setIsHso(false);
+    } else if (name === "hso") {
+      setIsHso(true);
     }
   }
 
   function updateCheckin(id) {
     if (
         window.confirm(
-            `Are you sure you want to update checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${date}?`)) {
+            `Are you sure you want to update check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}?`)) {
             const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
 
             setSubmitting(true);
@@ -125,7 +130,7 @@ const Update = () => {
                   } else {
                     const newRange = generateTimeRange(`${checkinHour}:${checkinMin} ${checkinAMPM}`, `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`);
                     fetch(
-                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${ranges[id].isHso ? "hso" : "member"}CheckIn?date=${date}&name=${name}`,
+                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${isHso ? "hso" : "member"}CheckIn?date=${date}&name=${name}`,
                         {
                           method: "PUT",
                           headers: { "Content-Type": "application/json" },
@@ -141,7 +146,8 @@ const Update = () => {
                             });
                           } else {
                                 setSubmitting(false);
-                                alert(`Successfully updated checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${date}.`);
+                                alert(
+                                  `Successfully updated check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}.`);
                                 
                                 navigate('../');
                           }
@@ -158,7 +164,7 @@ const Update = () => {
   function deleteCheckin(id) {
     if (
       window.confirm(
-        `Are you sure you want to delete checkin from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} on ${date}?`)) {
+        `Are you sure you want to delete check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} on ${formatDateToReadable(date)}?`)) {
         const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
         setSubmitting(true);
         fetch(
@@ -178,7 +184,8 @@ const Update = () => {
               } else {
                 setSubmitting(false);
                 alert(
-                  `Successfully deleted checkin from ${convertTo12Hour(ranges[id].checkIn)}-${convertTo12Hour(ranges[id].checkOut)} on ${date}.`
+                  `Successfully deleted check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} 
+                   on ${formatDateToReadable(date)}.`
                 );
                 navigate('../');
               }
@@ -194,15 +201,11 @@ const Update = () => {
     <div className="update">
       <h1 className="heading">Update Check In</h1>
       <h3 className="subheading">{name}</h3>
-      <h3 className="subheading">{date}</h3>
+      <h3 className="subheading">{formatDateToReadable(date)}</h3>
       <div className="update-form">
         {ranges.map((range, index) => {
           return (
             <div className="ranges" key={index}>
-              <p className="disclaimer">
-                Original Time: {convertTo12Hour(range.checkIn)} -{" "}
-                {convertTo12Hour(range.checkOut)}{" "}
-              </p>
               <div className="input-container">
                 <div className="time-container" id="checkin-input">
                   <label htmlFor="checkinHour">Check In</label>
@@ -292,7 +295,27 @@ const Update = () => {
                     <option value="PM">PM</option>
                   </select>
                 </div>
+                <div className="member-type-container">
+                <div>
+                  <label htmlFor="member">Member</label>
+                  <input
+                    type="radio"
+                    name="member"
+                    checked={!isHso}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="hso">HSO</label>
+                  <input
+                    type="radio"
+                    name="hso"
+                    checked={isHso}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
+            </div>
 
               {
                 submitting ? (

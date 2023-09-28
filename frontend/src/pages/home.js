@@ -244,7 +244,7 @@ const Home = () => {
           <h3 className="subheading">&lt;</h3>
         </div> : <></>}
         <div className="date-container">
-          <h3 className={`date subheading ${animationClass}`}>{currentDate}</h3>
+          <h3 className={`date subheading ${animationClass}`}>{formatDateToReadable(currentDate)}</h3>
         </div>
         {showRightArrow ? <div className="right" onClick={handleRightArrow}>
           <h3 className="subheading">&gt;</h3>
@@ -280,6 +280,7 @@ const Home = () => {
   );
 };
 
+// converts a 12-hour time to 24-hour time
 export function convertTo24Hour(time12) {
   const [time, period] = time12.split(" ");
   let [hours, minutes] = time.split(":");
@@ -294,6 +295,7 @@ export function convertTo24Hour(time12) {
   return `${hours}:${minutes}`;
 }
 
+// converts a 24-hour time to 12-hour
 export function convertTo12Hour(time24) {
   const [hours, mins] = time24.split(":");
   let period = "AM";
@@ -307,6 +309,8 @@ export function convertTo12Hour(time24) {
   return `${hours12}:${mins} ${period}`;
 }
 
+// converts a date object to string format for database querying
+// Sample output: "YYYY-MM-DD"
 export function formatDate(unformattedDate) {
   let dateString = unformattedDate.toISOString().split("T")[0];
   let dateArr = dateString.split("-");
@@ -316,6 +320,28 @@ export function formatDate(unformattedDate) {
   return `${year}-${month}-${day}`;
 }
 
+// Converts a date string in the format: "YYYY-MM-DD" to "[Day Of Week], [Month] [Day], [Year]"
+export function formatDateToReadable(unformattedDate) {
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const date = new Date(unformattedDate);
+  const month = months[date.getMonth()];
+  const dayOfMonth = date.getDate() + 1; // no idea why day is behind
+
+  // Add the appropriate suffix to the day of the month
+  let daySuffix = "th";
+  if (dayOfMonth === 1 || dayOfMonth === 21 || dayOfMonth === 31) {
+    daySuffix = "st";
+  } else if (dayOfMonth === 2 || dayOfMonth === 22) {
+    daySuffix = "nd";
+  } else if (dayOfMonth === 3 || dayOfMonth === 23) {
+    daySuffix = "rd";
+  }
+
+  const formattedDate = `${month} ${dayOfMonth}${daySuffix}, ${date.getFullYear()}`;
+  return formattedDate;
+}
+
+// Removes any extra spaces and capitalizes first character
 export function formatName(first, last) {
   let formattedFirst = first.replace(" ", "");
   formattedFirst = formattedFirst.charAt().toUpperCase() + formattedFirst.slice(1);
@@ -326,6 +352,7 @@ export function formatName(first, last) {
   return `${formattedFirst} ${formattedLast}`;
 }
 
+// Generates a list of 24 hour times in 15-minute incremets inclusively between two parameter 12-hour times.
 export function generateTimeRange(startTime12hr, endTime12hr) {
   const start24hr = new Date(
     `1970-01-01 ${convertTo24Hour(startTime12hr)}`
