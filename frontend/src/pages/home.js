@@ -67,7 +67,7 @@ const Home = () => {
         setMemberData(dataCache[currentDate].memberData);
         setHsoData(dataCache[currentDate].hsoData);
      } else {
-        console.log("fetching data...")
+        console.log("Fetching Data...")
         const times = await getTimes();
         const currentMemberCount = await getMemberCount();
         const currentHsoCount = await getHsoCount();
@@ -183,7 +183,6 @@ const Home = () => {
   const [showLeftArrow, setShowLeftArrow] = useState(true);
   function handleLeftArrow() {
     setAnimationClass('slide-left-exit');
-
     let newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() - 1);
 
@@ -320,26 +319,28 @@ export function formatDate(unformattedDate) {
   return `${year}-${month}-${day}`;
 }
 
-// Converts a date string in the format: "YYYY-MM-DD" to "[Day Of Week], [Month] [Day], [Year]"
+// Converts a date string in the format: "YYYY-MM-DD" to "[Month] [Day], [Year]"
 export function formatDateToReadable(unformattedDate) {
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const date = new Date(unformattedDate);
-  const month = months[date.getMonth()];
-  const dayOfMonth = date.getDate() + 1; // no idea why day is behind
+  const year = unformattedDate.split("-")[0];
+  const month = months[Number(unformattedDate.split("-")[1]) - 1];
+  const day = Number(unformattedDate.split("-")[2]);
 
   // Add the appropriate suffix to the day of the month
   let daySuffix = "th";
-  if (dayOfMonth === 1 || dayOfMonth === 21 || dayOfMonth === 31) {
+  if (day === 1 || day === 21 || day === 31) {
     daySuffix = "st";
-  } else if (dayOfMonth === 2 || dayOfMonth === 22) {
+  } else if (day === 2 || day === 22) {
     daySuffix = "nd";
-  } else if (dayOfMonth === 3 || dayOfMonth === 23) {
+  } else if (day === 3 || day === 23) {
     daySuffix = "rd";
   }
 
-  const formattedDate = `${month} ${dayOfMonth}${daySuffix}, ${date.getFullYear()}`;
+  const formattedDate = `${month} ${day}${daySuffix}, ${year}`;
   return formattedDate;
 }
+
+console.log(formatDateToReadable("2023-10-31"))
 
 // Removes any extra spaces and capitalizes first character
 export function formatName(first, last) {

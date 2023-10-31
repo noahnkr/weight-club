@@ -184,8 +184,7 @@ const Update = () => {
               } else {
                 setSubmitting(false);
                 alert(
-                  `Successfully deleted check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} 
-                   on ${formatDateToReadable(date)}.`
+                  `Successfully deleted check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} on ${formatDateToReadable(date)}.`
                 );
                 navigate('../');
               }
