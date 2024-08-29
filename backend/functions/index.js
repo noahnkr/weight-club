@@ -2,6 +2,7 @@ const functions = require("firebase-functions");
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const serviceAccount = require("./firebase-key.json");
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const cors = require("cors")({ origin: true });
 
 initializeApp({
@@ -40,7 +41,7 @@ exports.getMembers = functions.https.onRequest((req, res) => {
       const members = {};
 
       dateCollection.forEach((time) => {
-        const membersAtTime = time.data().members;
+        const membersAtTime = time.data().members.filter(member => !member.startsWith("ANON"));
         members[time.id] = membersAtTime;
       });
 
@@ -80,7 +81,7 @@ exports.getHso = functions.https.onRequest((req, res) => {
       const hso = {};
 
       dateCollection.forEach((time) => {
-        const hsoAtTime = time.data().hso;
+        const hsoAtTime = time.data().hso.filter(hso => !hso.startsWith("ANON"));
         hso[time.id] = hsoAtTime;
       });
 
@@ -206,10 +207,10 @@ exports.deleteMemberCheckIn = functions.https.onRequest((req, res) => {
               batch.update(docRef, {
                 members: members
               });
-            } else if (data.hso.includes(name)) {
-              const hso = data.hso.filter(hso => hso !== name)
+            } else if (data.members.includes(`ANON ${name}`)) {
+              const members = data.members.filter(member => member !== `ANON ${name}`);
               batch.update(docRef, {
-                hso: hso
+                members: members
               });
             }
           } else {
@@ -226,7 +227,6 @@ exports.deleteMemberCheckIn = functions.https.onRequest((req, res) => {
 
     } catch (err) {
       res.status(500).send("There was an error deleting the checkin.")
-
     }
   });
 });
@@ -248,6 +248,11 @@ exports.deleteHsoCheckIn = functions.https.onRequest((req, res) => {
             const data = doc.data();
             if (data.hso.includes(name)) {
               const hso = data.hso.filter(hso => hso !== name)
+              batch.update(docRef, {
+                hso: hso
+              });
+            } else if (data.hso.includes(`ANON ${name}`)) {
+              const hso = data.hso.filter(hso => hso !== `ANON ${name}`)
               batch.update(docRef, {
                 hso: hso
               });
@@ -289,6 +294,13 @@ exports.getCheckedInTimeRanges = functions.https.onRequest((req, res) => {
             if (checkInTime === "" && checkOutTime === "") {
               checkInTime = doc.id;
               isHso = data.hso.includes(name);
+            } else if (checkInTime !== "") {
+              checkOutTime = doc.id;
+            }
+          } else if (data.members.includes(`ANON ${name}`) || data.hso.includes(`ANON ${name}`)) {
+            if (checkInTime === "" && checkOutTime === "") {
+              checkInTime = doc.id;
+              isHso = data.hso.includes(`ANON ${name}`);
             } else if (checkInTime !== "") {
               checkOutTime = doc.id;
             }
@@ -372,6 +384,164 @@ exports.createNextDateCollection = functions.pubsub
     return batch.commit();
   });
 
+  exports.generateHistogram = functions.https.onRequest(async (req, res) => {
+    cors(req, res, async () => {
+        try {
+            const histogramData = await calculateWeeklyAverages();
+
+            const width = 1500;
+            const height = 800;
+            const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            // Create a dataset for members and HSOs
+            const membersData = [];
+            const hsoData = [];
+            const labels = [];
+
+            daysOfWeek.forEach((day, dayIndex) => {
+                const dayHours = Object.keys(histogramData[day].members); // Get the hours for each day
+                dayHours.forEach((time, index) => {
+                    membersData.push(histogramData[day].members[time].average);
+                    hsoData.push(histogramData[day].hso[time].average);
+                    labels.push(`${index % 2 == 0 ? time : ''}`); // Use full time label for clarity
+                });
+
+                // Add a gap after each day except the last one
+                if (dayIndex < daysOfWeek.length - 1) {
+                    membersData.push(null); // Add a null entry for members
+                    hsoData.push(null); // Add a null entry for HSOs
+                    labels.push(''); // Add an empty label for the gap
+                }
+            });
+
+            const data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'HSOs',
+                        data: hsoData,
+                        backgroundColor: "rgba(28, 217, 78, 0.8)",
+                        borderWidth: 2,
+                        borderColor: "rgb(28, 217, 78)",
+                    },
+                    {
+                        label: 'Members',
+                        data: membersData,
+                        backgroundColor: "rgba(54, 162, 235, 0.8)",
+                        borderWidth: 2,
+                        borderColor: "rgb(54, 162, 235)",
+                    }
+                ]
+            };
+
+            const configuration = {
+                type: 'bar',
+                data: data,
+                options: {
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                autoSkip: false
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                              display: true,
+                              text: "Average # of Members",
+                              font: {
+                                family: 'Roboto',
+                                size: 18,
+                                weight: 'bold',
+                              },
+                            },
+                            stacked: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'ISU Weight Club 2023-2024 Member Data',
+                            font: {
+                              family: 'Roboto',
+                              size: 24,
+                              weight: 'bold',
+                            },
+                        }
+                    }
+                }
+            };
+
+            const image = await chartJSNodeCanvas.renderToBuffer(configuration);
+            res.set('Content-Type', 'image/png');
+            res.send(image);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error generating histogram');
+        }
+    });
+});
+  
+async function calculateWeeklyAverages() {
+  const collections = await database.listCollections();
+  const weekData = {
+    "Monday": { members: {}, hso: {} },
+    "Tuesday": { members: {}, hso: {} },
+    "Wednesday": { members: {}, hso: {} },
+    "Thursday": { members: {}, hso: {} },
+    "Friday": { members: {}, hso: {} },
+    "Saturday": { members: {}, hso: {} },
+    "Sunday": { members: {}, hso: {} },
+  };
+
+  for (const collection of collections) {
+    const date = new Date(collection.id);
+    const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' });
+    const snapshot = await collection.get();
+
+    snapshot.forEach((doc) => {
+      const time = convertTo12HourFormat(doc.id);
+      const hour = time.split(':')[0] + ':00 ' + time.split(' ')[1]; // Extract the hour part and set minutes to '00'
+      const membersCount = doc.data().members.length;
+      const hsoCount = doc.data().hso.length;
+
+      const membersWeight = membersCount > 0 ? 2 : 1; // Weighted count assuming 50% of people don't check into website
+
+
+      if (!weekData[dayOfWeek].members[hour]) {
+        weekData[dayOfWeek].members[hour] = { total: 0, count: 0 };
+      }
+      if (!weekData[dayOfWeek].hso[hour]) {
+        weekData[dayOfWeek].hso[hour] = { total: 0, count: 0 };
+      }
+
+      weekData[dayOfWeek].members[hour].total += membersCount * membersWeight;
+      weekData[dayOfWeek].members[hour].count += 1;
+
+      weekData[dayOfWeek].hso[hour].total += hsoCount;
+      weekData[dayOfWeek].hso[hour].count += 1;
+    });
+  }
+
+  // Calculate averages
+  for (const day in weekData) {
+    for (const hour in weekData[day].members) {
+      weekData[day].members[hour].average = Math.round(weekData[day].members[hour].total / weekData[day].members[hour].count);
+    }
+    for (const hour in weekData[day].hso) {
+      weekData[day].hso[hour].average = Math.round(weekData[day].hso[hour].total / weekData[day].hso[hour].count);
+    }
+  }
+
+  return weekData;
+}
+
+
+
+
 // Returns an array of time strings in 24 hour format inclusively inbetween two 12 hour times
 function generateTimeRange(startTime12hr, endTime12hr) {
   function convertTo24HourFormat(time12hr) {
@@ -403,4 +573,23 @@ function generateTimeRange(startTime12hr, endTime12hr) {
   }
 
   return timeArray;
+}
+
+function convertTo12HourFormat(time24hr) {
+  const [hours, minutes] = time24hr.split(":");
+  let hours12 = parseInt(hours);
+  let period = "AM";
+
+  if (hours12 >= 12) {
+    period = "PM";
+    if (hours12 > 12) {
+      hours12 -= 12;
+    }
+  } else if (hours12 === 0) {
+    hours12 = 12;
+  }
+
+  // No leading zero for hours
+  const formattedHours = hours12.toString();
+  return `${formattedHours}:${minutes} ${period}`;
 }

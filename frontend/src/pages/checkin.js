@@ -19,6 +19,7 @@ const Checkin = () => {
   const [checkoutMin, setCheckoutMin] = useState("");
   const [checkoutAMPM, setCheckoutAMPM] = useState("");
   const [isHso, setisHso] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [update_firstName, setUpdate_firstName] = useState("");
@@ -61,6 +62,8 @@ const Checkin = () => {
       setisHso(false);
     } else if (name === "hso") {
       setisHso(true);
+    } else if (name === "anonymous") {
+      setIsAnonymous(!isAnonymous);
     }
   }
 
@@ -94,7 +97,7 @@ const Checkin = () => {
     fetch(
       `https://us-central1-weight-club-e16e5.cloudfunctions.net/${
         isHso ? "hso" : "member"
-      }CheckIn?date=${date}&name=${name}`,
+      }CheckIn?date=${date}&name=${isAnonymous ? "ANON " : ""}${name}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -302,6 +305,15 @@ const Checkin = () => {
               />
             </div>
           </div>
+          <div>
+              <label htmlFor="anonymous">Check in Anonymously?</label>
+              <input 
+                type="checkbox"
+                name="anonymous"
+                checked={isAnonymous}
+                onChange={handleChange}
+              />
+            </div>
         </div>
         <p className="disclaimer">
           * Click{" "}

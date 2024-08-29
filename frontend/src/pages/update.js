@@ -17,6 +17,7 @@ const Update = () => {
   const [checkoutMin, setCheckoutMin] = useState([]);
   const [checkoutAMPM, setCheckoutAMPM] = useState([]);
   const [isHso, setIsHso] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ const Update = () => {
       `https://us-central1-weight-club-e16e5.cloudfunctions.net/getCheckedInTimeRanges?date=${date}&name=${name}`,
       { method: "GET" }
     )
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
           return res.text().then((err) => {
             throw new Error(err);
@@ -103,13 +104,15 @@ const Update = () => {
       setIsHso(false);
     } else if (name === "hso") {
       setIsHso(true);
+    } else if (name === "anonymous") {
+      setIsAnonymous(!isAnonymous);
     }
   }
 
   function updateCheckin(id) {
     if (
         window.confirm(
-            `Are you sure you want to update check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}?`)) {
+            `Are you sure you want to update check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM} - ${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}?`)) {
             const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
 
             setSubmitting(true);
@@ -130,7 +133,7 @@ const Update = () => {
                   } else {
                     const newRange = generateTimeRange(`${checkinHour}:${checkinMin} ${checkinAMPM}`, `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`);
                     fetch(
-                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${isHso ? "hso" : "member"}CheckIn?date=${date}&name=${name}`,
+                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${isHso ? "hso" : "member"}CheckIn?date=${date}&name=${isAnonymous ? "ANON " : ""}${name}`,
                         {
                           method: "PUT",
                           headers: { "Content-Type": "application/json" },
@@ -147,7 +150,7 @@ const Update = () => {
                           } else {
                                 setSubmitting(false);
                                 alert(
-                                  `Successfully updated check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM}-${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}.`);
+                                  `Successfully updated check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM} - ${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}.`);
                                 
                                 navigate('../');
                           }
@@ -314,6 +317,15 @@ const Update = () => {
                   />
                 </div>
               </div>
+              <div>
+                <label htmlFor="anonymous">Check in Anonymously?</label>
+                <input 
+                  type="checkbox"
+                  name="anonymous"
+                  checked={isAnonymous}
+                  onChange={handleChange}
+              />
+            </div>
             </div>
 
               {

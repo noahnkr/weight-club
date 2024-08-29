@@ -4,14 +4,6 @@ import { TailSpin } from "react-loader-spinner";
 import { Link } from "react-router-dom";
 import "../styles/home.css";
 
-/*
-TODO:
-- Fix current time and open/closed message
-- Add current checked in members at bottom of screen
-- Yesterday & Tomorrow check in graphs
-- Center check in screen
-*/
-
 const Home = () => {
   document.title = "ISU Weight Club | Home";
   const [dataCache, setDataCache] = useState({});
@@ -339,8 +331,6 @@ export function formatDateToReadable(unformattedDate) {
   const formattedDate = `${month} ${day}${daySuffix}, ${year}`;
   return formattedDate;
 }
-
-console.log(formatDateToReadable("2023-10-31"))
 
 // Removes any extra spaces and capitalizes first character
 export function formatName(first, last) {
