@@ -4,12 +4,11 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
 }
 
 .heading {
     font-size: 28px;
-    margin-bottom: 10px;
 }
 
 .subheading {
@@ -19,28 +18,33 @@ body {
 
 .disclaimer {
     text-align: center;
-    color: #89847E;
+    color: #89847e;
 }
 
-.home, .checkin, .update, .about {
+.home,
+.checkin,
+.update,
+.about {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.button, .button a {
+.button,
+.button a {
     background-color: #f1bc45;
     color: #cc0000;
     padding: 10px 12px 10px 12px;
     font-weight: bold;
     font-size: 32px;
     text-decoration: none;
+    margin: 10px 0px;
 }
 
-.button:hover, .button a:hover {
+.button:hover,
+.button a:hover {
     background-color: #cc0000;
     color: #f1bc45;
     cursor: pointer;
 }
-

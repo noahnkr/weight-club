@@ -1,7 +1,0 @@
-/node_modules
-
-.firebaserc
-firebase-debug.log
-firebase.json
-firestore.rules
-

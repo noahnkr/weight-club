@@ -1,5 +1,10 @@
 node_modules/
 
+.firebaserc
+firebase-debug.log
+firebase.json
+firestore.rules
+
 firebase-key.json
 firestore-debug.log
 firestore.indexes.json

@@ -1,595 +1,511 @@
-const functions = require("firebase-functions");
-const { initializeApp, cert } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
-const serviceAccount = require("./firebase-key.json");
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
-const cors = require("cors")({ origin: true });
+const functions = require('firebase-functions')
+const { initializeApp, cert } = require('firebase-admin/app')
+const { getFirestore, FieldValue } = require('firebase-admin/firestore')
+const serviceAccount = require('./firebase-key.json')
+const cors = require('cors')({ origin: true })
 
 initializeApp({
-  credential: cert(serviceAccount),
-  databaseURL: "https://weight-club-e16e5-default-rtdatabase.firebaseio.com",
-});
+    credential: cert(serviceAccount),
+    databaseURL: 'https://weight-club-e16e5-default-rtdatabase.firebaseio.com',
+})
 
-const database = getFirestore();
+const db = getFirestore()
 
-exports.getMemberCount = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { date } = req.query;
-      const ref = database.collection(date);
-      const dateCollection = await ref.get();
-      const memberCount = {};
-
-      dateCollection.forEach((time) => {
-        const count = time.data().members.length;
-        memberCount[time.id] = count;
-      });
-
-      res.status(200).send(memberCount);
-    } catch (err) {
-      res.status(500).send("Error getting member counts");
-    }
-  });
-});
-
-exports.getMembers = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { date } = req.query;
-      const ref = database.collection(date);
-      const dateCollection = await ref.get();
-      const members = {};
-
-      dateCollection.forEach((time) => {
-        const membersAtTime = time.data().members.filter(member => !member.startsWith("ANON"));
-        members[time.id] = membersAtTime;
-      });
-
-      res.status(200).send(members);
-    } catch (err) {
-      res.status(500).send("Error getting members.");
-    }
-  });
-});
-
-exports.getHsoCount = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { date } = req.query;
-      const ref = database.collection(date);
-      const dateCollection = await ref.get();
-      const hsoCount = {};
-
-      dateCollection.forEach((time) => {
-        const count = time.data().hso.length;
-        hsoCount[time.id] = count;
-      });
-
-      res.status(200).send(hsoCount);
-    } catch (err) {
-      res.status(500).send("Error getting HSO counts.");
-    }
-  });
-});
-
-exports.getHso = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { date } = req.query;
-      const ref = database.collection(date);
-      const dateCollection = await ref.get();
-      const hso = {};
-
-      dateCollection.forEach((time) => {
-        const hsoAtTime = time.data().hso.filter(hso => !hso.startsWith("ANON"));
-        hso[time.id] = hsoAtTime;
-      });
-
-      res.status(200).send(hso);
-    } catch (err) {
-      res.status(500).send("Error getting members.");
-    }
-  });
-});
-
-exports.getTimes = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { date } = req.query;
-      const ref = database.collection(date);
-      const dateCollection = await ref.get();
-      const times = [];
-
-      dateCollection.forEach((time) => {
-        times.push(time.id);
-      });
-
-      res.status(200).send(times);
-    } catch (err) {
-      res.status(500).send("Error getting members.");
-    }
-  });
-});
-
-exports.memberCheckIn = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date, name } = req.query;
-    const { range } = req.body;
-    const batch = database.batch();
-
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      if (!collection.empty) {
-        for (const time of range) {
-          const docRef = collectionRef.doc(time);
-          const doc = await docRef.get();
-          if (doc.exists) {
-            const members = doc.data().members;
-            if (!members.includes(name)) {
-              members.push(name);
-              batch.update(docRef, { members: members });
-            } 
-          } else {
-            res
-              .status(404)
-              .send(
-                "Cannot check in at the given time. Please make sure the club is open during the time range."
-              );
-            return;
-          }
+exports.addIndividualCheckin = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        // Ensure that the request method is POST
+        if (req.method !== 'POST') {
+            return res.status(405).send('Method Not Allowed')
         }
-        await batch.commit();
-        res.status(200).send("Batch check-in successful");
-      } else {
-        res.status(404).send(`Cannot check in to date ${date} yet.`);
-      }
-    } catch (err) {
-      console.log(err);
-      res.status(500).send("There was an error checking in.");
-    }
-  });
-});
 
-exports.hsoCheckIn = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date, name } = req.query;
-    const { range } = req.body;
-    const batch = database.batch();
+        try {
+            // Extract the data from the request body
+            const { name, date, startTime, endTime, isHso, isAnonymous } = req.body
 
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      if (!collection.empty) {
-        for (const time of range) {
-          const docRef = collectionRef.doc(time);
-          const doc = await docRef.get();
-          if (doc.exists) {
-            const hso = doc.data().hso;
-            if (!hso.includes(name)) {
-              hso.push(name);
-              batch.update(docRef, { hso: hso });
+            // Validate required fields
+            if (!name || !date || !startTime || !endTime) {
+                return res.status(400).send('Missing required fields')
             }
-          } else {
-            res.status(404).send("Cannot check in at the given time. Please make sure the club is open during the time range.");
-            return;
-          }
+
+            // Create a new check-in document in the 'checkins' collection
+            const newCheckIn = {
+                name: name,
+                date: date,
+                startTime: startTime,
+                endTime: endTime,
+                isHso: isHso || false,
+                isAnonymous: isAnonymous || false,
+                createdAt: FieldValue.serverTimestamp(),
+            }
+
+            // Add the new check-in document to Firestore
+            const checkinRef = db.collection('checkins').doc()
+            await checkinRef.set(newCheckIn)
+
+            // Send a success response
+            res.status(201).send({
+                message: 'Check-in added successfully',
+                id: checkinRef.id,
+            })
+        } catch (error) {
+            console.error('Error adding check-in:', error)
+            res.status(500).send('Internal Server Error')
         }
-        await batch.commit();
-        res.status(200).send("Batch check-in successful");
-      } else {
-        res.status(404).send(`Cannot check in to date ${date} yet.`);
-      }
-    } catch (err) {
-      console.log(err);
-      res.status(500).send("There was an error checking in.");
-    }
-  });
-});
+    })
+})
 
-exports.deleteMemberCheckIn = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date, name } = req.query;
-    const { range } = req.body;
-    const batch = database.batch();
+exports.addRepeatingCheckin = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== 'POST') {
+            return res.status(405).send('Method Not Allowed')
+        }
 
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      if (!collection.empty) {
-        for (const time of range) {
-          const docRef = collectionRef.doc(time);
-          const doc = await docRef.get();
-          if (doc.exists) {
-            const data = doc.data();
-            if (data.members.includes(name)) {
-              const members = data.members.filter(member => member !== name);
-              batch.update(docRef, {
-                members: members
-              });
-            } else if (data.members.includes(`ANON ${name}`)) {
-              const members = data.members.filter(member => member !== `ANON ${name}`);
-              batch.update(docRef, {
-                members: members
-              });
+        try {
+            // Extract the data from the request body
+            const { name, days, startTime, endTime, isHso, isAnonymous } = req.body
+
+            // Validate required fields
+            if (!name || !days || !startTime || !endTime) {
+                return res.status(400).send('Missing required fields')
             }
-          } else {
-            res.status(404).send(`Cannot delete document ${time} on ${date} because document does not exist.`);
-            return;
-          }
-        };
 
-        await batch.commit();
-        res.status(200).send("Successfully deleted checkin.")
-      } else {
-        res.status(404).send(`Cannot delete range at date ${date} because the date does not exist.`)
-      }
-
-    } catch (err) {
-      res.status(500).send("There was an error deleting the checkin.")
-    }
-  });
-});
-
-exports.deleteHsoCheckIn = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date, name } = req.query;
-    const { range } = req.body;
-    const batch = database.batch();
-
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      if (!collection.empty) {
-        for (const time of range) {
-          const docRef = collectionRef.doc(time);
-          const doc = await docRef.get();
-          if (doc.exists) {
-            const data = doc.data();
-            if (data.hso.includes(name)) {
-              const hso = data.hso.filter(hso => hso !== name)
-              batch.update(docRef, {
-                hso: hso
-              });
-            } else if (data.hso.includes(`ANON ${name}`)) {
-              const hso = data.hso.filter(hso => hso !== `ANON ${name}`)
-              batch.update(docRef, {
-                hso: hso
-              });
+            // Create a new check-in document in the 'repeating_checkins' collection
+            const newCheckIn = {
+                name: name,
+                days: days.split(','),
+                startTime: startTime,
+                endTime: endTime,
+                isHso: isHso || false,
+                isAnonymous: isAnonymous || false,
+                createdAt: FieldValue.serverTimestamp(),
             }
-          } else {
-            res.status(404).send(`Cannot delete document ${time} on ${date} because document does not exist.`);
-            return;
-          }
-        };
 
-        await batch.commit();
-        res.status(200).send("Successfully deleted checkin.")
-      } else {
-        res.status(404).send(`Cannot delete range at date ${date} because the date does not exist.`)
-      }
+            // Add the new check-in document to Firestore
+            const checkinRef = db.collection('repeating_checkins').doc()
+            await checkinRef.set(newCheckIn)
 
-    } catch (err) {
-      res.status(500).send("There was an error deleting the checkin.")
+            // Send a success response
+            res.status(201).send({
+                message: 'Check-in added successfully',
+                id: checkinRef.id,
+            })
+        } catch (error) {
+            console.error('Error adding check-in:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
 
-    }
-  });
-});
+exports.getIndividualCheckins = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        // Ensure that the request method is GET
+        if (req.method !== 'GET') {
+            return res.status(405).send('Method Not Allowed')
+        }
 
-exports.getCheckedInTimeRanges = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date, name } = req.query;
-    const ranges = [];
-    let checkInTime = ""
-    let checkOutTime = "";
-    let isHso = false;
+        try {
+            // Extract the name and date from the query parameters
+            const { name, date } = req.query
 
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      if (!collection.empty) {
-        collection.forEach(doc => {
-          const data = doc.data();
-          if (data.members.includes(name) || data.hso.includes(name)) {
-            if (checkInTime === "" && checkOutTime === "") {
-              checkInTime = doc.id;
-              isHso = data.hso.includes(name);
-            } else if (checkInTime !== "") {
-              checkOutTime = doc.id;
+            // Validate required parameters
+            if (!name || !date) {
+                return res
+                    .status(400)
+                    .send('Missing required query parameters: name and date')
             }
-          } else if (data.members.includes(`ANON ${name}`) || data.hso.includes(`ANON ${name}`)) {
-            if (checkInTime === "" && checkOutTime === "") {
-              checkInTime = doc.id;
-              isHso = data.hso.includes(`ANON ${name}`);
-            } else if (checkInTime !== "") {
-              checkOutTime = doc.id;
+
+            // Query Firestore for check-ins that match the specified name and date
+            const checkinsRef = db
+                .collection('checkins')
+                .where('name', '==', name)
+                .where('date', '==', date)
+            const snapshot = await checkinsRef.get()
+
+            // Check if any documents were found
+            if (snapshot.empty) {
+                return res.status(200).send([]) // Return an empty array if no check-ins found
             }
-          } else if (checkInTime !== "" && checkOutTime !== "") {
-              ranges.push({
-                checkIn: checkInTime,
-                checkOut: checkOutTime,
-                isHso: isHso
-              });
-              checkInTime = "";
-              checkOutTime = "";
-              isHso = false;
+
+            // Map over the snapshot to extract check-in data
+            const checkins = snapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    id: doc.id,
+                    name: data.name,
+                    date: data.date,
+                    startTime: data.startTime,
+                    endTime: data.endTime,
+                    isHso: data.isHso,
+                    isAnonymous: data.isAnonymous,
+                }
+            })
+
+            // Send the check-ins data as the response
+            res.status(200).send(checkins)
+        } catch (error) {
+            console.error('Error fetching check-ins by name and date:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
+
+exports.getRepeatingCheckins = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        // Ensure that the request method is GET
+        if (req.method !== 'GET') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        try {
+            // Extract the name and date from the query parameters
+            const { name } = req.query
+
+            // Validate required parameters
+            if (!name) {
+                return res.status(400).send('Missing required query parameter: name')
             }
-          });
-        res.status(200).send(ranges);
-      } else {
-        res.status(404).send(`Date ${date} does not exist yet.`);
-      }
-    } catch (err) {
-      res.status(500).send("There was an error.");
-    }
-  });
-});
 
-exports.collectionExists = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    const { date } = req.query;
-    try {
-      const collectionRef = database.collection(date);
-      const collection = await collectionRef.get();
-      // date collection doesn't exist
-      if (collection.empty) {
-        res.status(200).send(false);
-        return;
-      } else {
-        res.status(200).send(true);
-      }
-    } catch (err) {
-      console.log(err);
-      res.status(500).send("There was an error.");
-    }
-  });
-});
+            // Query Firestore for check-ins that match the specified name and date
+            const checkinsRef = db
+                .collection('repeating_checkins')
+                .where('name', '==', name)
+            const snapshot = await checkinsRef.get()
 
-exports.createNextDateCollection = functions.pubsub
-  .schedule("0 0 * * *")
-  .timeZone("America/Chicago")
-  .onRun(async (ctx) => {
-    const day = new Date();
-    day.setDate(day.getDate() + 7);
-    const collectionName = day.toISOString().split("T")[0];
+            // Check if any documents were found
+            if (snapshot.empty) {
+                return res.status(200).send([]) // Return an empty array if no check-ins found
+            }
 
-    let range;
-    let dayOfWeek = day.getDay();
+            // Map over the snapshot to extract check-in data
+            const checkins = snapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    id: doc.id,
+                    name: data.name,
+                    days: data.days.join(','),
+                    startTime: data.startTime,
+                    endTime: data.endTime,
+                    isHso: data.isHso,
+                    isAnonymous: data.isAnonymous,
+                }
+            })
 
-    // mon, tues, wed, pr thur
-    if (dayOfWeek >= 1 && dayOfWeek <= 4) {
-      range = generateTimeRange("6:00 AM", "11:45 PM");
-      // friday
-    } else if (dayOfWeek == 5) {
-      range = generateTimeRange("6:00 AM", "9:45 PM");
-      // saturday
-    } else if (dayOfWeek == 6) {
-      range = generateTimeRange("8:00 AM", "5:45 PM");
-      // sunday
-    } else {
-      range = generateTimeRange("8:00 AM", "11:45 PM");
-    }
+            // Send the check-ins data as the response
+            res.status(200).send(checkins)
+        } catch (error) {
+            console.error('Error fetching check-ins by name and date:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
 
-    const batch = database.batch();
-    const collectionRef = database.collection(collectionName);
-
-    range.forEach((time) => {
-      const docRef = collectionRef.doc(time);
-      batch.set(docRef, {
-        members: [],
-        hso: [],
-      });
-    });
-
-    return batch.commit();
-  });
-
-  exports.generateHistogram = functions.https.onRequest(async (req, res) => {
+exports.getMemberCounts = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
         try {
-            const histogramData = await calculateWeeklyAverages();
+            const { date } = req.query
 
-            const width = 1500;
-            const height = 800;
-            const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+            // Generate time intervals based on day of the week
+            const intervals = generateTimeIntervals(date)
+            const memberCounts = {}
+            const hsoCounts = {}
 
-            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            intervals.forEach((interval) => {
+                memberCounts[interval] = 0
+                hsoCounts[interval] = 0
+            })
 
-            // Create a dataset for members and HSOs
-            const membersData = [];
-            const hsoData = [];
-            const labels = [];
+            // Query Firestore for all check-ins on the specified date
+            const checkinsRef = db.collection('checkins').where('date', '==', date)
+            const snapshot = await checkinsRef.get()
 
-            daysOfWeek.forEach((day, dayIndex) => {
-                const dayHours = Object.keys(histogramData[day].members); // Get the hours for each day
-                dayHours.forEach((time, index) => {
-                    membersData.push(histogramData[day].members[time].average);
-                    hsoData.push(histogramData[day].hso[time].average);
-                    labels.push(`${index % 2 == 0 ? time : ''}`); // Use full time label for clarity
-                });
+            if (snapshot.empty) {
+                return res.status(200).send({ memberCounts, hsoCounts }) // Return empty counts if no check-ins found
+            }
 
-                // Add a gap after each day except the last one
-                if (dayIndex < daysOfWeek.length - 1) {
-                    membersData.push(null); // Add a null entry for members
-                    hsoData.push(null); // Add a null entry for HSOs
-                    labels.push(''); // Add an empty label for the gap
-                }
-            });
+            // Process each check-in and update the counts for each overlapping interval
+            snapshot.forEach((doc) => {
+                const data = doc.data()
+                const startTime = new Date(`${date}T${data.startTime}:00`)
+                const endTime = new Date(`${date}T${data.endTime}:00`)
 
-            const data = {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'HSOs',
-                        data: hsoData,
-                        backgroundColor: "rgba(28, 217, 78, 0.8)",
-                        borderWidth: 2,
-                        borderColor: "rgb(28, 217, 78)",
-                    },
-                    {
-                        label: 'Members',
-                        data: membersData,
-                        backgroundColor: "rgba(54, 162, 235, 0.8)",
-                        borderWidth: 2,
-                        borderColor: "rgb(54, 162, 235)",
-                    }
-                ]
-            };
+                intervals.forEach((interval) => {
+                    const intervalTime = new Date(`${date}T${interval}:00`)
 
-            const configuration = {
-                type: 'bar',
-                data: data,
-                options: {
-                    scales: {
-                        x: {
-                            stacked: true,
-                            ticks: {
-                                autoSkip: false
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                              display: true,
-                              text: "Average # of Members",
-                              font: {
-                                family: 'Roboto',
-                                size: 18,
-                                weight: 'bold',
-                              },
-                            },
-                            stacked: true
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'ISU Weight Club 2023-2024 Member Data',
-                            font: {
-                              family: 'Roboto',
-                              size: 24,
-                              weight: 'bold',
-                            },
+                    // Check if interval falls within the check-in start and end times
+                    if (intervalTime >= startTime && intervalTime <= endTime) {
+                        if (data.isHso) {
+                            hsoCounts[interval]++
+                        } else {
+                            memberCounts[interval]++
                         }
                     }
-                }
-            };
+                })
+            })
 
-            const image = await chartJSNodeCanvas.renderToBuffer(configuration);
-            res.set('Content-Type', 'image/png');
-            res.send(image);
-        } catch (err) {
-            console.error(err);
-            res.status(500).send('Error generating histogram');
+            // Return the aggregated counts
+            res.status(200).send({ memberCounts, hsoCounts })
+        } catch (error) {
+            console.error('Error fetching interval counts:', error)
+            res.status(500).send('Error getting interval counts.')
         }
-    });
-});
-  
-async function calculateWeeklyAverages() {
-  const collections = await database.listCollections();
-  const weekData = {
-    "Monday": { members: {}, hso: {} },
-    "Tuesday": { members: {}, hso: {} },
-    "Wednesday": { members: {}, hso: {} },
-    "Thursday": { members: {}, hso: {} },
-    "Friday": { members: {}, hso: {} },
-    "Saturday": { members: {}, hso: {} },
-    "Sunday": { members: {}, hso: {} },
-  };
+    })
+})
 
-  for (const collection of collections) {
-    const date = new Date(collection.id);
-    const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' });
-    const snapshot = await collection.get();
+exports.getMemberNames = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            const { date } = req.query
 
-    snapshot.forEach((doc) => {
-      const time = convertTo12HourFormat(doc.id);
-      const hour = time.split(':')[0] + ':00 ' + time.split(' ')[1]; // Extract the hour part and set minutes to '00'
-      const membersCount = doc.data().members.length;
-      const hsoCount = doc.data().hso.length;
+            // Generate time intervals based on the day of the week
+            const intervals = generateTimeIntervals(date)
+            const memberNames = {}
+            const hsoNames = {}
 
-      const membersWeight = membersCount > 0 ? 2 : 1; // Weighted count assuming 50% of people don't check into website
+            // Initialize memberNames and hsoNames for each interval
+            intervals.forEach((interval) => {
+                memberNames[interval] = []
+                hsoNames[interval] = []
+            })
 
+            // Query Firestore for all check-ins on the specified date
+            const checkinsRef = db.collection('checkins').where('date', '==', date)
+            const snapshot = await checkinsRef.get()
 
-      if (!weekData[dayOfWeek].members[hour]) {
-        weekData[dayOfWeek].members[hour] = { total: 0, count: 0 };
-      }
-      if (!weekData[dayOfWeek].hso[hour]) {
-        weekData[dayOfWeek].hso[hour] = { total: 0, count: 0 };
-      }
+            if (snapshot.empty) {
+                return res.status(200).send({ memberNames, hsoNames }) // Return empty arrays if no check-ins found
+            }
 
-      weekData[dayOfWeek].members[hour].total += membersCount * membersWeight;
-      weekData[dayOfWeek].members[hour].count += 1;
+            // Process each check-in and categorize names based on the time interval
+            snapshot.forEach((doc) => {
+                const data = doc.data()
+                const startTime = new Date(`${date}T${data.startTime}:00`)
+                const endTime = new Date(`${date}T${data.endTime}:00`)
 
-      weekData[dayOfWeek].hso[hour].total += hsoCount;
-      weekData[dayOfWeek].hso[hour].count += 1;
-    });
-  }
+                intervals.forEach((interval) => {
+                    const intervalTime = new Date(`${date}T${interval}:00`)
 
-  // Calculate averages
-  for (const day in weekData) {
-    for (const hour in weekData[day].members) {
-      weekData[day].members[hour].average = Math.round(weekData[day].members[hour].total / weekData[day].members[hour].count);
+                    // Check if the interval falls within the check-in start and end times
+                    if (intervalTime >= startTime && intervalTime <= endTime) {
+                        if (!data.isAnonymous) {
+                            if (data.isHso) {
+                                hsoNames[interval].push(data.name)
+                            } else {
+                                memberNames[interval].push(data.name)
+                            }
+                        }
+                    }
+                })
+            })
+
+            // Return the categorized names for each time interval
+            res.status(200).send({ memberNames, hsoNames })
+        } catch (error) {
+            console.error('Error fetching names per interval:', error)
+            res.status(500).send('Error getting names per interval.')
+        }
+    })
+})
+
+exports.updateIndividualCheckin = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== 'PUT') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        try {
+            const { id, startTime, endTime, isHso, isAnonymous } = req.body
+
+            if (!id || !startTime || !endTime) {
+                return res.status(400).send('Missing required fields')
+            }
+
+            const checkinRef = db.collection('checkins').doc(id)
+            await checkinRef.update({
+                startTime: startTime,
+                endTime: endTime,
+                isHso: isHso,
+                isAnonymous: isAnonymous,
+            })
+
+            res.status(200).send({ message: 'Check-in updated successfully' })
+        } catch (error) {
+            console.error('Error updating check-in:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
+
+exports.updateRepeatingCheckin = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== 'PUT') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        try {
+            const { id, days, startTime, endTime, isHso, isAnonymous } = req.body
+
+            if (!id || !days || !startTime || !endTime) {
+                return res.status(400).send('Missing required fields')
+            }
+
+            const checkinRef = db.collection('repeating_checkins').doc(id)
+            await checkinRef.update({
+                days: days.split(','),
+                startTime: startTime,
+                endTime: endTime,
+                isHso: isHso,
+                isAnonymous: isAnonymous,
+            })
+
+            res.status(200).send({ message: 'Check-in updated successfully' })
+        } catch (error) {
+            console.error('Error updating check-in:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
+
+exports.deleteCheckin = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== 'DELETE') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        try {
+            const { id, repeating } = req.query
+
+            if (!id || !repeating) {
+                return res
+                    .status(400)
+                    .send('Missing required query parameter: id or repeating')
+            }
+
+            const collectionName =
+                repeating === 'true' ? 'repeating_checkins' : 'checkins'
+            const checkinRef = db.collection(collectionName).doc(id)
+            await checkinRef.delete()
+
+            res.status(200).send({ message: 'Check-in deleted successfully' })
+        } catch (error) {
+            console.error('Error deleting check-in:', error)
+            res.status(500).send('Internal Server Error')
+        }
+    })
+})
+
+exports.createWeeklyCheckins = functions.pubsub
+    .schedule('every sunday 00:00')
+    .onRun(async (ctx) => {
+        try {
+            // Fetch all documents from the 'repeating_checkins' collection
+            const repeatingCheckinsSnapshot = await db
+                .collection('repeating_checkins')
+                .get()
+
+            if (repeatingCheckinsSnapshot.empty) {
+                console.log('No repeating check-ins found.')
+                return null
+            }
+
+            // Iterate through each repeating check-in document
+            repeatingCheckinsSnapshot.forEach(async (doc) => {
+                const data = doc.data()
+                const { name, days, startTime, endTime, isHso, isAnonymous } = data
+
+                // Create check-ins for each day in the current week
+                days.forEach(async (day) => {
+                    // Get the date for the current day in the current week
+                    const checkinDate = getNextWeekdayDate(day)
+
+                    // Create a new check-in document in the 'checkins' collection
+                    const newCheckIn = {
+                        name: name,
+                        date: checkinDate,
+                        startTime: startTime,
+                        endTime: endTime,
+                        isHso: isHso || false,
+                        isAnonymous: isAnonymous || false,
+                        createdAt: FieldValue.serverTimestamp(),
+                    }
+
+                    // Add the new check-in document to Firestore
+                    await db.collection('checkins').add(newCheckIn)
+                })
+            })
+
+            console.log('Weekly check-ins created successfully.')
+            return null
+        } catch (error) {
+            console.error('Error creating weekly check-ins:', error)
+            return null
+        }
+    })
+
+function generateTimeIntervals(date) {
+    const dateObj = new Date(date)
+    const dayIndex = dateObj.getDay()
+    const daysOfWeek = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+    ]
+    const dayOfWeek = daysOfWeek[dayIndex]
+
+    const hours = {
+        Monday: ['06:00', '23:59'],
+        Tuesday: ['06:00', '23:59'],
+        Wednesday: ['06:00', '23:59'],
+        Thursday: ['06:00', '23:59'],
+        Friday: ['06:00', '22:00'],
+        Saturday: ['08:00', '18:00'],
+        Sunday: ['08:00', '23:59'],
     }
-    for (const hour in weekData[day].hso) {
-      weekData[day].hso[hour].average = Math.round(weekData[day].hso[hour].total / weekData[day].hso[hour].count);
-    }
-  }
 
-  return weekData;
+    // Get the start and end times for the given day
+    const [startTime, endTime] = hours[dayOfWeek]
+
+    const start = new Date(`1970-01-01T${startTime}:00`)
+    const end = new Date(`1970-01-01T${endTime}:00`)
+    const intervals = []
+
+    // Generate 15-minute intervals between the start and end times
+    while (start <= end) {
+        intervals.push(start.toTimeString().slice(0, 5)) // 'HH:MM' format
+        start.setMinutes(start.getMinutes() + 15)
+    }
+
+    return intervals
 }
 
+function getNextWeekdayDate(dayOfWeek) {
+    const daysOfWeek = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+    ]
+    const today = new Date()
+    const currentDayIndex = today.getDay()
+    const targetDayIndex = daysOfWeek.indexOf(dayOfWeek)
 
+    // Calculate the number of days until the next occurrence of the target day
+    const daysUntilNext = (targetDayIndex + 7 - currentDayIndex) % 7
 
+    // Calculate the date of the next occurrence of the target day
+    const nextWeekday = new Date(today)
+    nextWeekday.setDate(today.getDate() + daysUntilNext)
 
-// Returns an array of time strings in 24 hour format inclusively inbetween two 12 hour times
-function generateTimeRange(startTime12hr, endTime12hr) {
-  function convertTo24HourFormat(time12hr) {
-    const [time, period] = time12hr.split(" ");
-    const [hours, minutes] = time.split(":");
+    // Format the date as 'YYYY-MM-DD'
+    const year = nextWeekday.getFullYear()
+    const month = String(nextWeekday.getMonth() + 1).padStart(2, '0')
+    const day = String(nextWeekday.getDate()).padStart(2, '0')
 
-    let hours24 = parseInt(hours);
-
-    if (period.toLowerCase() === "pm" && hours24 !== 12) {
-      hours24 += 12;
-    } else if (period.toLowerCase() === "am" && hours24 === 12) {
-      hours24 = 0;
-    }
-
-    const formattedHours = hours24.toString().padStart(2, "0");
-    return `${formattedHours}:${minutes}`;
-  }
-
-  const start24hr = new Date(
-    `1970-01-01 ${convertTo24HourFormat(startTime12hr)}`
-  );
-  const end24hr = new Date(`1970-01-01 ${convertTo24HourFormat(endTime12hr)}`);
-  const timeArray = [];
-
-  while (start24hr <= end24hr) {
-    const timeString = start24hr.toTimeString().slice(0, 5);
-    timeArray.push(timeString);
-    start24hr.setMinutes(start24hr.getMinutes() + 15);
-  }
-
-  return timeArray;
-}
-
-function convertTo12HourFormat(time24hr) {
-  const [hours, minutes] = time24hr.split(":");
-  let hours12 = parseInt(hours);
-  let period = "AM";
-
-  if (hours12 >= 12) {
-    period = "PM";
-    if (hours12 > 12) {
-      hours12 -= 12;
-    }
-  } else if (hours12 === 0) {
-    hours12 = 12;
-  }
-
-  // No leading zero for hours
-  const formattedHours = hours12.toString();
-  return `${formattedHours}:${minutes} ${period}`;
+    return `${year}-${month}-${day}`
 }

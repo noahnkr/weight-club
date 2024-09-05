@@ -1,370 +1,534 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { convertTo12Hour, generateTimeRange, formatDateToReadable } from "./home";
-import "../styles/checkin.css";
-import { TailSpin } from "react-loader-spinner";
+import { useState } from 'react'
+import { UserOutlined, LoadingOutlined } from '@ant-design/icons'
+import { Input, DatePicker, TimePicker, Switch, Select, Spin, message } from 'antd'
+import dayjs from 'dayjs'
+import '../styles/checkin.css'
+import '../styles/update.css'
+
+const { Option } = Select
 
 const Update = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { date, name } = location.state;
+    const [foundCheckins, setFoundCheckins] = useState(false) // State controlling update form inputs
+    const [finding, setFinding] = useState(false) // State controlling the wheel while finding checkins
 
-  const [ranges, setRanges] = useState([]);
-  const [checkinHour, setCheckinHour] = useState([]);
-  const [checkinMin, setCheckinMin] = useState([]);
-  const [checkinAMPM, setCheckinAMPM] = useState([]);
-  const [checkoutHour, setCheckoutHour] = useState([]);
-  const [checkoutMin, setCheckoutMin] = useState([]);
-  const [checkoutAMPM, setCheckoutAMPM] = useState([]);
-  const [isHso, setIsHso] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+    const [name, setName] = useState(null)
+    const [selectedDate, setSelectedDate] = useState(null)
 
-  useEffect(() => {
-    fetch(
-      `https://us-central1-weight-club-e16e5.cloudfunctions.net/getCheckedInTimeRanges?date=${date}&name=${name}`,
-      { method: "GET" }
-    )
-      .then(async (res) => {
-        if (!res.ok) {
-          return res.text().then((err) => {
-            throw new Error(err);
-          });
+    const [individualIds, setIndividualIds] = useState([])
+    const [individualTimeRanges, setIndividualTimeRanges] = useState([])
+    const [individualIsHso, setIndividualIsHso] = useState([])
+    const [individualIsAnon, setIndividualIsAnon] = useState([])
+    const [individualUpdatingOrDeleting, setIndividualUpdatingOrDeleting] = useState([]) // State controlling each individual  update item's wheel
+
+    const [repeatingIds, setRepeatingIds] = useState([])
+    const [repeatingTimeRanges, setRepeatingTimeRanges] = useState([])
+    const [repeatingIsHso, setRepeatingIsHso] = useState([])
+    const [repeatingIsAnon, setRepeatingIsAnon] = useState([])
+    const [repeatingDays, setRepeatingDays] = useState([])
+    const [repeatingUpdatingOrDeleting, setRepeatingUpdatingOrDeleting] = useState([]) // State controlling each repeating update item's wheel
+
+    const handleNameChange = (e) => {
+        setName(e.target.value)
+    }
+
+    const handleDateChange = (date) => {
+        setSelectedDate(date)
+    }
+
+    const handleTimeChange = (times, index, repeating) => {
+        if (repeating) {
+            const updatedTimeRanges = [...repeatingTimeRanges]
+            updatedTimeRanges[index] = times
+            setRepeatingTimeRanges(updatedTimeRanges)
         } else {
-          return res.json();
+            const updatedTimeRanges = [...individualTimeRanges]
+            updatedTimeRanges[index] = times
+            setIndividualTimeRanges(updatedTimeRanges)
         }
-      })
-      .then((resRanges) => {
-        setRanges(resRanges);
-
-        const defaultValues = resRanges.map(range => {
-          const original_checkin = convertTo12Hour(range.checkIn);
-          const original_checkout = convertTo12Hour(range.checkOut);
-
-          const original_checkinHour = original_checkin.split(":")[0];
-          const original_checkinMin = original_checkin
-            .split(":")[1]
-            .split(" ")[0];
-          const original_checkinAMPM = original_checkin
-            .split(":")[1]
-            .split(" ")[1];
-
-          const original_checkoutHour = original_checkout.split(":")[0];
-          const original_checkoutMin = original_checkout
-            .split(":")[1]
-            .split(" ")[0];
-          const original_checkoutAMPM = original_checkout
-            .split(":")[1]
-            .split(" ")[1];
-
-          return {
-            checkinHour: original_checkinHour,
-            checkinMin: original_checkinMin,
-            checkinAMPM: original_checkinAMPM,
-            checkoutHour: original_checkoutHour,
-            checkoutMin: original_checkoutMin,
-            checkoutAMPM: original_checkoutAMPM,
-          };
-        });
-
-        setCheckinHour(defaultValues.map((v) => v.checkinHour));
-        setCheckinMin(defaultValues.map((v) => v.checkinMin));
-        setCheckinAMPM(defaultValues.map((v) => v.checkinAMPM));
-        setCheckoutHour(defaultValues.map((v) => v.checkoutHour));
-        setCheckoutMin(defaultValues.map((v) => v.checkoutMin));
-        setCheckoutAMPM(defaultValues.map((v) => v.checkoutAMPM));
-      })
-      .catch((err) => {
-        console.log(
-          `There was an error getting ranges on date ${date} for ${name}`
-        );
-      });
-  }, [date, name]);
-
-  function handleChange(e) {
-    let name = e.target.name;
-    let value = e.target.value;
-    if (name.includes("checkin")) {
-      if (name.includes("Hour")) {
-        setCheckinHour(value);
-      } else if (name.includes("Min")) {
-        setCheckinMin(value);
-      } else if (name.includes("AMPM")) {
-        setCheckinAMPM(value);
-      }
-    } else if (name.includes("checkout")) {
-      if (name.includes("Hour")) {
-        setCheckoutHour(value);
-      } else if (name.includes("Min")) {
-        setCheckoutMin(value);
-      } else if (name.includes("AMPM")) {
-        setCheckoutAMPM(value);
-      }
-    } else if (name === "member") {
-      setIsHso(false);
-    } else if (name === "hso") {
-      setIsHso(true);
-    } else if (name === "anonymous") {
-      setIsAnonymous(!isAnonymous);
     }
-  }
 
-  function updateCheckin(id) {
-    if (
-        window.confirm(
-            `Are you sure you want to update check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM} - ${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}?`)) {
-            const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
+    const handleHsoChange = (checked, index, repeating) => {
+        if (repeating) {
+            const updatedHso = [...repeatingIsHso]
+            updatedHso[index] = checked
+            setRepeatingIsHso(updatedHso)
+        } else {
+            const updatedHso = [...individualIsHso]
+            updatedHso[index] = checked
+            setIndividualIsHso(updatedHso)
+        }
+    }
 
-            setSubmitting(true);
-            fetch(
-                `https://us-central1-weight-club-e16e5.cloudfunctions.net/delete${ranges[id].isHso ? "Hso" : "Member"}CheckIn?date=${date}&name=${name}`, 
-                { 
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        range: deletedRange
-                    })
-                  }
-            ).then(res => {
-                if (!res.ok) {
-                    return res.text().then((err) => {
-                      throw new Error(err);
-                    });
-                  } else {
-                    const newRange = generateTimeRange(`${checkinHour}:${checkinMin} ${checkinAMPM}`, `${checkoutHour}:${checkoutMin} ${checkoutAMPM}`);
-                    fetch(
-                        `https://us-central1-weight-club-e16e5.cloudfunctions.net/${isHso ? "hso" : "member"}CheckIn?date=${date}&name=${isAnonymous ? "ANON " : ""}${name}`,
-                        {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
+    const handleAnonChange = (checked, index, repeating) => {
+        if (repeating) {
+            const updatedAnon = [...repeatingIsAnon]
+            updatedAnon[index] = checked
+            setRepeatingIsAnon(updatedAnon)
+        } else {
+            const updatedAnon = [...individualIsAnon]
+            updatedAnon[index] = checked
+            setIndividualIsAnon(updatedAnon)
+        }
+    }
+
+    const handleDaysChange = (days, index) => {
+        const updatedDays = [...repeatingDays]
+        updatedDays[index] = days
+        setRepeatingDays(updatedDays)
+    }
+
+    const findCheckIns = async () => {
+        if (!name || !selectedDate) {
+            message.error('Please fill in all required fields.')
+            return
+        }
+
+        setFinding(true)
+
+        try {
+            // Fetch individual check-ins
+            const individualResponse = await fetch(
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getIndividualCheckins?name=${name}&date=${selectedDate.format(
+                    'YYYY-MM-DD'
+                )}`,
+                {
+                    method: 'GET',
+                }
+            )
+            const individualData = await individualResponse.json()
+
+            // Fetch repeating check-ins
+            const repeatingResponse = await fetch(
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getRepeatingCheckins?name=${name}`,
+                {
+                    method: 'GET',
+                }
+            )
+            const repeatingData = await repeatingResponse.json()
+
+            // Check if any check-ins were found
+            if (individualData.length === 0 && repeatingData.length === 0) {
+                message.info('No check-ins found.')
+                setFoundCheckins(false)
+            } else {
+                setFoundCheckins(true)
+            }
+
+            // Update state with individual check-ins
+            const formattedIndividualTimeRanges = individualData.map((checkin) => [
+                dayjs(checkin.startTime, 'HH:mm'),
+                dayjs(checkin.endTime, 'HH:mm'),
+            ])
+            setIndividualTimeRanges(formattedIndividualTimeRanges)
+            setIndividualIsHso(individualData.map((checkin) => checkin.isHso))
+            setIndividualIsAnon(individualData.map((checkin) => checkin.isAnonymous))
+            setIndividualIds(individualData.map((checkin) => checkin.id))
+            setIndividualUpdatingOrDeleting(individualTimeRanges.map(() => false))
+
+            // Update state with repeating check-ins
+            const formattedRepeatingTimeRanges = repeatingData.map((checkin) => [
+                dayjs(checkin.startTime, 'HH:mm'),
+                dayjs(checkin.endTime, 'HH:mm'),
+            ])
+            setRepeatingTimeRanges(formattedRepeatingTimeRanges)
+            setRepeatingIsHso(repeatingData.map((checkin) => checkin.isHso))
+            setRepeatingIsAnon(repeatingData.map((checkin) => checkin.isAnonymous))
+            setRepeatingDays(repeatingData.map((checkin) => checkin.days.split(',')))
+            setRepeatingIds(repeatingData.map((checkin) => checkin.id))
+            setRepeatingUpdatingOrDeleting(repeatingTimeRanges.map(() => false))
+        } catch (error) {
+            console.error('Error fetching check-ins:', error)
+            message.error('Failed to fetch check-ins. Please try again later.')
+        } finally {
+            setFinding(false)
+            setFoundCheckins(true)
+        }
+    }
+
+    const updateCheckin = async (index, repeating) => {
+        // Replace this update and delete item's buttons with loading wheel
+        if (repeating) {
+            const newUpdatingOrDeleting = [...repeatingUpdatingOrDeleting]
+            newUpdatingOrDeleting[index] = true
+            setRepeatingUpdatingOrDeleting(newUpdatingOrDeleting)
+        } else {
+            const newUpdatingOrDeleting = [...individualUpdatingOrDeleting]
+            newUpdatingOrDeleting[index] = true
+            setIndividualUpdatingOrDeleting(newUpdatingOrDeleting)
+        }
+
+        try {
+            const id = repeating ? repeatingIds[index] : individualIds[index]
+            const timeRange = repeating
+                ? repeatingTimeRanges[index]
+                : individualTimeRanges[index]
+            const startTime = timeRange[0].format('HH:mm')
+            const endTime = timeRange[1].format('HH:mm')
+            const isHso = repeating ? repeatingIsHso[index] : individualIsHso[index]
+            const isAnonymous = repeating
+                ? repeatingIsAnon[index]
+                : individualIsAnon[index]
+
+            const response = repeating
+                ? await fetch(
+                      'https://us-central1-weight-club-e16e5.cloudfunctions.net/updateRepeatingCheckin',
+                      {
+                          method: 'PUT',
+                          headers: {
+                              'Content-Type': 'application/json',
+                          },
                           body: JSON.stringify({
-                            range: newRange,
+                              id: id,
+                              days: repeatingDays.join(','),
+                              startTime: startTime,
+                              endTime: endTime,
+                              isHso: isHso,
+                              isAnonymous: isAnonymous,
                           }),
-                        }
-                      )
-                        .then((res) => {
-                          if (!res.ok) {
-                            return res.text().then((err) => {
-                              throw new Error(err);
-                            });
-                          } else {
-                                setSubmitting(false);
-                                alert(
-                                  `Successfully updated check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} to ${checkinHour}:${checkinMin} ${checkinAMPM} - ${checkoutHour}:${checkoutMin} ${checkoutAMPM} on ${formatDateToReadable(date)}.`);
-                                
-                                navigate('../');
-                          }
-                        });
                       }
-            }).catch(err => {
-                setSubmitting(false);
-                alert(err.message);
-            });
-    }
-    
-  }
+                  )
+                : await fetch(
+                      'https://us-central1-weight-club-e16e5.cloudfunctions.net/updateIndividualCheckin',
+                      {
+                          method: 'PUT',
+                          headers: {
+                              'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                              id: id,
+                              startTime: startTime,
+                              endTime: endTime,
+                              isHso: isHso,
+                              isAnonymous: isAnonymous,
+                          }),
+                      }
+                  )
 
-  function deleteCheckin(id) {
-    if (
-      window.confirm(
-        `Are you sure you want to delete check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} on ${formatDateToReadable(date)}?`)) {
-        const deletedRange = generateTimeRange(convertTo12Hour(ranges[id].checkIn), convertTo12Hour(ranges[id].checkOut));
-        setSubmitting(true);
-        fetch(
-            `https://us-central1-weight-club-e16e5.cloudfunctions.net/delete${ranges[id].isHso ? "Hso" : "Member"}CheckIn?date=${date}&name=${name}`, 
-            { 
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    range: deletedRange
-                })
-             }
-        ).then(res => {
-            if (!res.ok) {
-                return res.text().then((err) => {
-                  throw new Error(err);
-                });
-              } else {
-                setSubmitting(false);
-                alert(
-                  `Successfully deleted check-in from ${convertTo12Hour(ranges[id].checkIn)} - ${convertTo12Hour(ranges[id].checkOut)} on ${formatDateToReadable(date)}.`
-                );
-                navigate('../');
-              }
-        }).catch(err => {
-            setSubmitting(false);
-            alert(err.message);
-        });
-        
-    }
-  }
-
-  return (
-    <div className="update">
-      <h1 className="heading">Update Check In</h1>
-      <h3 className="subheading">{name}</h3>
-      <h3 className="subheading">{formatDateToReadable(date)}</h3>
-      <div className="update-form">
-        {ranges.map((range, index) => {
-          return (
-            <div className="ranges" key={index}>
-              <div className="input-container">
-                <div className="time-container" id="checkin-input">
-                  <label htmlFor="checkinHour">Check In</label>
-                  <select
-                    name="checkinHour"
-                    id="checkinHour"
-                    defaultValue={checkinHour[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                  </select>
-                  <p>:</p>
-                  <select
-                    name="checkinMin"
-                    id="checkinMin"
-                    defaultValue={checkinMin[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="00">00</option>
-                    <option value="15">15</option>
-                    <option value="30">30</option>
-                    <option value="45">45</option>
-                  </select>
-                  <select
-                    name="checkinAMPM"
-                    id="checkinAMPM"
-                    defaultValue={checkinAMPM[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-              </div>
-              <div className="input-container">
-                <div className="time-container" id="checkout-input">
-                  <label htmlFor="checkoutHour">Check Out</label>
-                  <select
-                    name="checkoutHour"
-                    id="checkoutHour"
-                    defaultValue={checkoutHour[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                  </select>
-                  <p>:</p>
-                  <select
-                    name="checkoutMin"
-                    id="checkoutMin"
-                    defaultValue={checkoutMin[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="00">00</option>
-                    <option value="15">15</option>
-                    <option value="30">30</option>
-                    <option value="45">45</option>
-                  </select>
-                  <select
-                    name="checkoutAMPM"
-                    id="checkoutAMPM"
-                    defaultValue={checkoutAMPM[index]}
-                    onChange={handleChange}
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-                <div className="member-type-container">
-                <div>
-                  <label htmlFor="member">Member</label>
-                  <input
-                    type="radio"
-                    name="member"
-                    checked={!isHso}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="hso">HSO</label>
-                  <input
-                    type="radio"
-                    name="hso"
-                    checked={isHso}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="anonymous">Check in Anonymously?</label>
-                <input 
-                  type="checkbox"
-                  name="anonymous"
-                  checked={isAnonymous}
-                  onChange={handleChange}
-              />
-            </div>
-            </div>
-
-              {
-                submitting ? (
-                  <div className="update-delete-container">
-                    <TailSpin 
-                    height="150"
-                    width="150"
-                    color="#89847E"
-                    wrapperClass="loader"
-                  />
-                  </div>
-                ) : (
-                  <div className="update-delete-container">
-                    <div
-                      className="button"
-                      onClick={() => {
-                        updateCheckin(index);
-                      }}
-                    >
-                      Update »
-                    </div>
-                    <div
-                      className="button"
-                      onClick={() => {
-                        deleteCheckin(index);
-                      }}
-                    >
-                      Delete »
-                    </div>
-                </div>
+            if (response.ok) {
+                const data = await response.json()
+                message.success(
+                    `${
+                        repeating ? 'Repeating' : 'Individual'
+                    } check-in updated successfully!`
                 )
-              }
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+            } else {
+                message.error(
+                    `Failed to update ${repeating ? 'repeating' : 'individual'} check-in.`
+                )
+            }
+        } catch (error) {
+            console.error('Error making request:', error)
+            message.error('Error occurred while updating check-in.')
+        } finally {
+            if (repeating) {
+                const newUpdatingOrDeleting = [...repeatingUpdatingOrDeleting]
+                newUpdatingOrDeleting[index] = false
+                setRepeatingUpdatingOrDeleting(newUpdatingOrDeleting)
+            } else {
+                const newUpdatingOrDeleting = [...individualUpdatingOrDeleting]
+                newUpdatingOrDeleting[index] = false
+                setIndividualUpdatingOrDeleting(newUpdatingOrDeleting)
+            }
+        }
+    }
 
-export default Update;
+    const deleteCheckin = async (index, repeating) => {
+        // Replace this update and delete item's buttons with loading wheel
+        if (repeating) {
+            const newUpdatingOrDeleting = [...repeatingUpdatingOrDeleting]
+            newUpdatingOrDeleting[index] = true
+            setRepeatingUpdatingOrDeleting(newUpdatingOrDeleting)
+        } else {
+            const newUpdatingOrDeleting = [...individualUpdatingOrDeleting]
+            newUpdatingOrDeleting[index] = true
+            setIndividualUpdatingOrDeleting(newUpdatingOrDeleting)
+        }
+
+        try {
+            const id = repeating ? repeatingIds[index] : individualIds[index]
+            const response = await fetch(
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/deleteCheckin?id=${id}&repeating=${repeating}`,
+                {
+                    method: 'DELETE',
+                }
+            )
+
+            if (response.ok) {
+                const data = await response.json()
+                message.success(
+                    `${
+                        repeating ? 'Repeating' : 'Individual'
+                    } check-in deleted successfully!`
+                )
+
+                // Remove the deleted check-in from the state
+                if (repeating) {
+                    const updatedRepeatingTimeRanges = [...repeatingTimeRanges]
+                    const updatedRepeatingIsHso = [...repeatingIsHso]
+                    const updatedRepeatingIsAnon = [...repeatingIsAnon]
+                    const updatedRepeatingDays = [...repeatingDays]
+                    const updatedRepeatingIds = [...repeatingIds]
+
+                    updatedRepeatingTimeRanges.splice(index, 1)
+                    updatedRepeatingIsHso.splice(index, 1)
+                    updatedRepeatingIsAnon.splice(index, 1)
+                    updatedRepeatingDays.splice(index, 1)
+                    updatedRepeatingIds.splice(index, 1)
+
+                    setRepeatingTimeRanges(updatedRepeatingTimeRanges)
+                    setRepeatingIsHso(updatedRepeatingIsHso)
+                    setRepeatingIsAnon(updatedRepeatingIsAnon)
+                    setRepeatingDays(updatedRepeatingDays)
+                    setRepeatingIds(updatedRepeatingIds)
+                } else {
+                    const updatedIndividualTimeRanges = [...individualTimeRanges]
+                    const updatedIndividualIsHso = [...individualIsHso]
+                    const updatedIndividualIsAnon = [...individualIsAnon]
+                    const updatedIndividualIds = [...individualIds]
+
+                    updatedIndividualTimeRanges.splice(index, 1)
+                    updatedIndividualIsHso.splice(index, 1)
+                    updatedIndividualIsAnon.splice(index, 1)
+                    updatedIndividualIds.splice(index, 1)
+
+                    setIndividualTimeRanges(updatedIndividualTimeRanges)
+                    setIndividualIsHso(updatedIndividualIsHso)
+                    setIndividualIsAnon(updatedIndividualIsAnon)
+                    setIndividualIds(updatedIndividualIds)
+                }
+            } else {
+                message.error(
+                    `Failed to delete ${repeating ? 'repeating' : 'individual'} check-in.`
+                )
+            }
+        } catch (error) {
+            console.error('Error making request:', error)
+            message.error('Error occurred while deleting check-in.')
+        } finally {
+            if (repeating) {
+                const newUpdatingOrDeleting = [...repeatingUpdatingOrDeleting]
+                newUpdatingOrDeleting[index] = false
+                setRepeatingUpdatingOrDeleting(newUpdatingOrDeleting)
+            } else {
+                const newUpdatingOrDeleting = [...individualUpdatingOrDeleting]
+                newUpdatingOrDeleting[index] = false
+                setIndividualUpdatingOrDeleting(newUpdatingOrDeleting)
+            }
+        }
+    }
+
+    const disabledTime = () => {
+        if (!selectedDate) return {}
+        const dayOfWeek = selectedDate.day()
+
+        switch (dayOfWeek) {
+            case 0: // Sunday
+                return {
+                    disabledHours: () => [...Array(8).keys(), 24], // Disable hours before 8 AM and after 11 PM
+                    disabledMinutes: (hour) => (hour === 24 ? [0] : []), // Disable 12:00 AM
+                }
+            case 1: // Monday
+            case 2: // Tuesday
+            case 3: // Wednesday
+            case 4: // Thursday
+                return {
+                    disabledHours: () => [...Array(6).keys()], // Disable hours before 6 AM
+                }
+            case 5: // Friday
+                return {
+                    disabledHours: () => [...Array(6).keys(), 22, 23, 24], // Disable hours before 6 AM and after 10 PM
+                    disabledMinutes: (hour) => (hour === 24 ? [0] : []), // Disable 12:00 AM
+                }
+            case 6: // Saturday
+                return {
+                    disabledHours: () => [...Array(8).keys(), 18, 19, 20, 21, 22, 23, 24], // Disable hours before 8 AM and after 6 PM
+                    disabledMinutes: (hour) => (hour === 24 ? [0] : []), // Disable 12:00 AM
+                }
+            default:
+                return {}
+        }
+    }
+
+    return (
+        <div className="update">
+            <h1 className="heading">Update Check In</h1>
+            {!foundCheckins ? (
+                <div className="update-form">
+                    <div className="input-container">
+                        <Input
+                            placeholder="Name"
+                            suffix={<UserOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
+                            onChange={handleNameChange}
+                        />
+                    </div>
+                    <div className="input-container">
+                        <DatePicker onChange={handleDateChange} />
+                    </div>
+                    {finding ? (
+                        <Spin
+                            indicator={<LoadingOutlined style={{ fontSize: 64 }} spin />}
+                            size="large"
+                        />
+                    ) : (
+                        <div className="button" id="submit-button" onClick={findCheckIns}>
+                            Find »
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="update-form">
+                    <h2 className="subheading update-date">
+                        {selectedDate ? selectedDate.format('MMMM Do, YYYY') : ''}
+                    </h2>
+                    {individualTimeRanges.map((individual, index) => (
+                        <div className="update-item" key={index}>
+                            <div className="input-container">
+                                <TimePicker.RangePicker
+                                    format={'h:mm A'}
+                                    minuteStep={15}
+                                    disabledTime={disabledTime}
+                                    value={individual}
+                                    onChange={(times) =>
+                                        handleTimeChange(times, index, false)
+                                    }
+                                    use12Hours
+                                />
+                            </div>
+                            <div className="switch-container">
+                                <div className="switch-item">
+                                    <span>HSO</span>
+                                    <Switch
+                                        checked={individualIsHso[index]}
+                                        onChange={(checked) =>
+                                            handleHsoChange(checked, index, false)
+                                        }
+                                    />
+                                </div>
+                                <div className="switch-item">
+                                    <span>Anonymous</span>
+                                    <Switch
+                                        checked={individualIsAnon[index]}
+                                        onChange={(checked) =>
+                                            handleAnonChange(checked, index, false)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            {individualUpdatingOrDeleting[index] ? (
+                                <div className="update-delete-container spin-container">
+                                    <Spin
+                                        indicator={
+                                            <LoadingOutlined
+                                                style={{ fontSize: 64 }}
+                                                spin
+                                            />
+                                        }
+                                        size="large"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="update-delete-container">
+                                    <div
+                                        className="button"
+                                        onClick={() => updateCheckin(index, false)}
+                                    >
+                                        Update »
+                                    </div>
+                                    <div
+                                        className="button"
+                                        onClick={() => deleteCheckin(index, false)}
+                                    >
+                                        Delete »
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {repeatingTimeRanges.length != 0 ? (
+                        <h2 className="subheading update-date">Repeating</h2>
+                    ) : (
+                        <></>
+                    )}
+                    {repeatingTimeRanges.map((repeating, index) => (
+                        <div className="update-item" key={index}>
+                            <div className="input-container">
+                                <TimePicker.RangePicker
+                                    format={'h:mm A'}
+                                    minuteStep={15}
+                                    disabledTime={disabledTime}
+                                    value={repeating}
+                                    onChange={(times) =>
+                                        handleTimeChange(times, index, true)
+                                    }
+                                    use12Hours
+                                />
+                            </div>
+                            <div className="switch-container">
+                                <div className="switch-item">
+                                    <span>HSO</span>
+                                    <Switch
+                                        checked={repeatingIsHso[index]}
+                                        onChange={(checked) =>
+                                            handleHsoChange(checked, index, true)
+                                        }
+                                    />
+                                </div>
+                                <div className="switch-item">
+                                    <span>Anonymous</span>
+                                    <Switch
+                                        checked={repeatingIsAnon[index]}
+                                        onChange={(checked) =>
+                                            handleAnonChange(checked, index, true)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            <div className="input-container">
+                                <Select
+                                    mode="multiple"
+                                    placeholder="Select days to repeat"
+                                    value={repeatingDays[index]}
+                                    onChange={(days) => handleDaysChange(days, index)}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Option value="Monday">Monday</Option>
+                                    <Option value="Tuesday">Tuesday</Option>
+                                    <Option value="Wednesday">Wednesday</Option>
+                                    <Option value="Thursday">Thursday</Option>
+                                    <Option value="Friday">Friday</Option>
+                                    <Option value="Saturday">Saturday</Option>
+                                    <Option value="Sunday">Sunday</Option>
+                                </Select>
+                            </div>
+                            {repeatingUpdatingOrDeleting[index] ? (
+                                <Spin
+                                    indicator={
+                                        <LoadingOutlined style={{ fontSize: 64 }} spin />
+                                    }
+                                    size="large"
+                                />
+                            ) : (
+                                <div className="update-delete-container">
+                                    <div
+                                        className="button"
+                                        onClick={() => updateCheckin(index, true)}
+                                    >
+                                        Update »
+                                    </div>
+                                    <div
+                                        className="button"
+                                        onClick={() => deleteCheckin(index, true)}
+                                    >
+                                        Delete »
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default Update

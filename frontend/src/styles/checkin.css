@@ -1,68 +1,39 @@
-.checkin-form, .update-form {
-    width: 90%;
+.checkin {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 20px;
 }
 
+.checkin-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+}
 
 .input-container {
-    margin-bottom: 5px;
+    margin-bottom: 15px;
+    width: 100%;
 }
 
-.input-container label {
-    margin-right: 3px;
-    font-size: 18px;
+.input-container .ant-input,
+.input-container .ant-picker,
+.input-container .ant-select {
+    width: 100%;
 }
 
-.time-container, .member-type-container {
+.switch-container {
     display: flex;
-    flex-direction: row;
-    justify-content: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 15px;
 }
 
-.member-type-container div {
-    margin: 0px 5px 0px 5px;
-}
-
-
-.time-container select {
-    margin: 0px 2px 0px 2px;
-}
-
-
-#checkin-input {
-    margin-left: 12px;
-}
-
-#submit-button {
-    margin-top: 10px;
-}
-
-#update-message {
-    margin-top: 30px;
-    margin-bottom: 10px;
-}
-
-.ranges {
-    margin-top: 10px;
-}
-
-.ranges p {
-    margin-bottom: 5px;
-}
-
-.update-delete-container {
+.switch-item {
     display: flex;
-    flex-direction: row;
-    margin-bottom: 10px;
-    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-right: 15px;
 }
-
-.update-delete-container div {
-    font-size: 24px;
-    margin: 0px 5px;
-}
-
-
-

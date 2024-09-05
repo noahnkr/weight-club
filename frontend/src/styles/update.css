@@ -1,0 +1,35 @@
+.update-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 10px;
+}
+
+.update-delete-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;
+    width: 100%;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.update-delete-container .button {
+    font-size: 24px;
+    margin: 0 5px;
+}
+
+.update-delete-container.spin-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.update-date {
+    margin: 10px 0;
+}
