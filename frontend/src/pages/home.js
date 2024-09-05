@@ -110,6 +110,28 @@ const Home = () => {
         }, [200])
     }
 
+    const handleReset = () => {
+        const today = new Date()
+
+        if (compareDates(currentDate, today) == -1) {
+            setAnimationClass('slide-right-exit')
+            setCurrentDate(today)
+            setTimeout(() => {
+                setAnimationClass('slide-right-enter')
+            }, [100])
+        } else if (compareDates(currentDate, today) == 1) {
+            setAnimationClass('slide-left-exit')
+            setCurrentDate(today)
+            setTimeout(() => {
+                setAnimationClass('slide-left-enter')
+            }, [100])
+        }
+
+        setTimeout(() => {
+            setAnimationClass('')
+        }, [200])
+    }
+
     const handleRightArrow = () => {
         setAnimationClass('slide-right-exit')
 
@@ -132,10 +154,7 @@ const Home = () => {
                 <div className="left" onClick={handleLeftArrow}>
                     <h3 className="subheading">&lt;</h3>
                 </div>
-                <div
-                    className="date-container"
-                    onClick={() => setCurrentDate(new Date())}
-                >
+                <div className="date-container" onClick={handleReset}>
                     <h3 className={`date subheading ${animationClass}`}>
                         {formatDateToReadable(currentDate)}
                     </h3>
@@ -160,6 +179,30 @@ const Home = () => {
             <Checkin onCheckinAdded={fetchData} />
         </div>
     )
+
+    function compareDates(d1, d2) {
+        const d1Year = d1.getFullYear()
+        const d1Month = d1.getMonth()
+        const d1Day = d1.getDate()
+
+        const d2Year = d2.getFullYear()
+        const d2Month = d2.getMonth()
+        const d2Day = d2.getDate()
+
+        if (d1Year < d2Year) return -1
+        if (d1Year > d2Year) return 1
+
+        // Years are the same, compare months
+        if (d1Month < d2Month) return -1
+        if (d1Month > d2Month) return 1
+
+        // Years and months are the same, compare days
+        if (d1Day < d2Day) return -1
+        if (d1Day > d2Day) return 1
+
+        // Dates are exactly the same
+        return 0
+    }
 }
 
 export default Home

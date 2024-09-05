@@ -17,7 +17,7 @@ const About = () => {
                     Bodybuilding, or improving overall fitness, we cater to all forms of
                     strength training.
                 </p>
-
+                <br />
                 <p>
                     We look for members who are motivated to push themselves further than
                     the average gym-goer. We offer opportunities for members to compete in

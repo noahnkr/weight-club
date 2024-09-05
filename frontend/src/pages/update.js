@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { UserOutlined, LoadingOutlined } from '@ant-design/icons'
 import { Input, DatePicker, TimePicker, Switch, Select, Spin, message } from 'antd'
 import dayjs from 'dayjs'
+import '../styles/style.css'
 import '../styles/checkin.css'
 import '../styles/update.css'
 
@@ -362,7 +363,7 @@ const Update = () => {
                         />
                     </div>
                     <div className="input-container">
-                        <DatePicker onChange={handleDateChange} />
+                        <DatePicker onChange={handleDateChange} inputReadOnly />
                     </div>
                     {finding ? (
                         <Spin
@@ -392,6 +393,7 @@ const Update = () => {
                                         handleTimeChange(times, index, false)
                                     }
                                     use12Hours
+                                    inputReadOnly
                                 />
                             </div>
                             <div className="switch-container">
@@ -461,6 +463,7 @@ const Update = () => {
                                         handleTimeChange(times, index, true)
                                     }
                                     use12Hours
+                                    inputReadOnly
                                 />
                             </div>
                             <div className="switch-container">
@@ -490,6 +493,7 @@ const Update = () => {
                                     value={repeatingDays[index]}
                                     onChange={(days) => handleDaysChange(days, index)}
                                     style={{ width: '100%' }}
+                                    showSearch={false}
                                 >
                                     <Option value="Monday">Monday</Option>
                                     <Option value="Tuesday">Tuesday</Option>

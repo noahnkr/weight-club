@@ -9,31 +9,34 @@ const Navbar = () => {
         setIsOpen(!isOpen)
     }
 
+    // Close the menu when a link is clicked or when clicking outside
+    function closeMenu() {
+        setIsOpen(false)
+    }
+
     return (
         <div className={`navbar ${isOpen ? 'open' : ''}`}>
             <div className="title">
-                <span>
-                    <h1>Iowa State Weight Club</h1>
-                </span>
+                <h1>Iowa State Weight Club</h1>
             </div>
             <div className="hamburger-icon" onClick={toggleMenu}>
                 <div className="bar"></div>
                 <div className="bar"></div>
                 <div className="bar"></div>
             </div>
-            <ul className="nav-links">
+            <ul className={`nav-links ${isOpen ? 'open' : ''}`}>
                 <li>
-                    <Link exact="true" to="/" onClick={toggleMenu}>
+                    <Link to="/" onClick={closeMenu}>
                         Home
                     </Link>
                 </li>
                 <li>
-                    <Link exact="true" to="update" onClick={toggleMenu}>
+                    <Link to="/update" onClick={closeMenu}>
                         Update
                     </Link>
                 </li>
                 <li>
-                    <Link exact="true" to="about" onClick={toggleMenu}>
+                    <Link to="/about" onClick={closeMenu}>
                         About
                     </Link>
                 </li>

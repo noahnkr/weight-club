@@ -219,7 +219,7 @@ const Checkin = ({ onCheckinAdded }) => {
                     />
                 </div>
                 <div className="input-container">
-                    <DatePicker onChange={handleDateChange} />
+                    <DatePicker onChange={handleDateChange} inputReadOnly />
                 </div>
                 <div className="input-container">
                     <TimePicker.RangePicker
@@ -228,6 +228,7 @@ const Checkin = ({ onCheckinAdded }) => {
                         disabledTime={disabledTime} // Set disabled times based on selected date
                         onChange={handleTimeChange}
                         use12Hours
+                        inputReadOnly
                     />
                 </div>
                 <div className="switch-container">
@@ -260,6 +261,7 @@ const Checkin = ({ onCheckinAdded }) => {
                             placeholder="Select days to repeat"
                             onChange={handleDaysChange}
                             style={{ width: '100%' }}
+                            showSearch={false}
                         >
                             <Option value="Monday">Monday</Option>
                             <Option value="Tuesday">Tuesday</Option>

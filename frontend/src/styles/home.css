@@ -21,6 +21,11 @@
     margin-bottom: 10px;
 }
 
+.date {
+    cursor: pointer;
+    user-select: none;
+}
+
 .date-container {
     overflow: hidden;
     white-space: nowrap;
