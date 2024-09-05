@@ -1,110 +1,121 @@
-import { Bar } from "react-chartjs-2";
-import { Chart } from "chart.js/auto";
-import AnnotationPlugin from "chartjs-plugin-annotation";
-import ZoomPlugin from  "chartjs-plugin-zoom";
+import React from 'react'
+import { Bar } from 'react-chartjs-2'
+import { Chart } from 'chart.js/auto'
+import AnnotationPlugin from 'chartjs-plugin-annotation'
+import ZoomPlugin from 'chartjs-plugin-zoom'
 
-Chart.register(AnnotationPlugin, ZoomPlugin);
+// Register plugins outside of the component to avoid re-registering them on each render
+Chart.register(AnnotationPlugin, ZoomPlugin)
 
-const Availability = ({ chartData, memberData, hsoData, date }) => {
-  function convertTo24Hour(time12) {
-    const [time, period] = time12.split(" ");
-    let [hours, minutes] = time.split(":");
+// Utility function to convert 24-hour format to 12-hour format
+const convertTo12HourFormat = (time24) => {
+    const [hours, minutes] = time24.split(':')
+    let period = 'AM'
+    let hours12 = parseInt(hours, 10)
 
-    if (period === "PM" && hours !== "12") {
-      hours = String(parseInt(hours) + 12);
-    } else if (period === "AM" && hours === "12") {
-      hours = "00";
+    if (hours12 >= 12) {
+        period = 'PM'
+        if (hours12 > 12) {
+            hours12 -= 12
+        }
+    } else if (hours12 === 0) {
+        hours12 = 12
     }
 
-    hours = hours.padStart(2, "0");
-    return `${hours}:${minutes}`;
-  }
+    // Return formatted time
+    return `${hours12}:${minutes} ${period}`
+}
 
-  const availabilityData = {
-    labels: chartData.map((data) => data.time),
-    datasets: [
-      {
-        label: "HSO",
-        data: chartData.map((data) => data.hsoCount),
-        backgroundColor: "rgba(28, 217, 78, 0.3)",
-        borderColor: "rgb(28, 217, 78)",
-        borderWidth: 2,
-      },
-      {
-        label: "Member",
-        data: chartData.map((data) => data.memberCount),
-        backgroundColor: "rgba(54, 162, 235, 0.3)",
-        borderColor: "rgb(54, 162, 235)",
-        borderWidth: 2,
-      }
-    ],
-  };
+const Availability = ({ memberData }) => {
+    const { memberCounts, hsoCounts, memberNames, hsoNames } = memberData
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      zoom: {
-        zoom: {
-          wheel: { enabled: true },
-          pinch: { enabled: true },
-          mode: "xy",
-        },
-        pan: {
-          enabled: true,
-          mode: "xy",
-        },
-        limits: {
-          y: {min: 0, max: 50}
-        }
-      },
-      tooltip: {
-        callbacks: {
-          title: (ctx) => ctx.label,
-          label: (ctx) => {
-            let memberArray = ctx.datasetIndex == 0 ? hsoData : memberData;
-            return memberArray[convertTo24Hour(ctx.label)];
-          }
-        },
-      },
-      legend: {
-        display: true,
-      },
-      annotation: {
-        annotations: {
-          minMembers: {
-            type: "line",
-            yMin: 3,
-            yMax: 3,
-            borderColor: "black",
-            borderWidth: 1
-          }
-        },
-      },
-    },
-    scales: {
-      x: { 
-        type: 'category',
-        stacked: true 
-      },
-      y: {
-        min: 0,
-        max: 10,
-        stacked: true,
-        beginAtZero: true,
-        beforeBuildTicks: (scale) => {
-          const step = 1; // Set the desired step size
-          const ticks = [];
-          for (let i = Math.floor(scale.min); i <= Math.ceil(scale.max); i += step) {
-            ticks.push(i);
-          }
-          return ticks;
-        },
-      },
-    },
-  };
+    const intervals = Object.keys(memberCounts) // X-axis labels (15-minute intervals)
+    const memberCountsData = intervals.map((interval) => memberCounts[interval]) // Y-axis data for members
+    const hsoCountsData = intervals.map((interval) => hsoCounts[interval]) // Y-axis data for HSOs
 
-  return <Bar data={availabilityData} options={options} />;
-};
+    // Convert intervals from 24-hour to 12-hour format for display
+    const formattedIntervals = intervals.map(convertTo12HourFormat)
 
-export default Availability;
+    const data = {
+        labels: formattedIntervals,
+        datasets: [
+            {
+                label: 'HSO',
+                data: hsoCountsData,
+                backgroundColor: 'rgba(28, 217, 78, 0.3)',
+                borderColor: 'rgb(28, 217, 78)',
+                borderWidth: 2,
+            },
+            {
+                label: 'Member',
+                data: memberCountsData,
+                backgroundColor: 'rgba(54, 162, 235, 0.3)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 2,
+            },
+        ],
+    }
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                type: 'category',
+                stacked: true,
+            },
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 8,
+                stacked: true,
+                ticks: {
+                    stepSize: 1, // Controls the increment step size
+                },
+            },
+        },
+        plugins: {
+            zoom: {
+                zoom: {
+                    wheel: { enabled: true },
+                    pinch: { enabled: true },
+                    mode: 'xy',
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'xy',
+                },
+                limits: {
+                    y: { min: 0, max: 50 },
+                },
+            },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const names = ctx.datasetIndex === 0 ? hsoNames : memberNames
+                        const interval = intervals[ctx.dataIndex]
+                        return names[interval]
+                    },
+                },
+            },
+            legend: {
+                display: true,
+            },
+            annotation: {
+                annotations: {
+                    minMembers: {
+                        type: 'line',
+                        yMin: 3,
+                        yMax: 3,
+                        borderColor: 'black',
+                        borderWidth: 1,
+                    },
+                },
+            },
+        },
+    }
+
+    return <Bar data={data} options={options} />
+}
+
+export default Availability

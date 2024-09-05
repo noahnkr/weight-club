@@ -1,0 +1,79 @@
+.about {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #f9f9f9; /* Light grey background for a clean look */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+}
+
+.heading {
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* About Content Styles */
+.about-content {
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.6; /* Increased line height for better readability */
+    color: #555; /* Medium grey text for a softer look */
+    margin-bottom: 30px; /* Space between sections */
+}
+
+.subheading {
+    font-size: 24px;
+    color: #444;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+/* Creator Info Styles */
+.creator-info {
+    background-color: #e0e7ff; /* Light blue background for emphasis */
+    padding: 15px;
+    border-radius: 8px; /* Rounded corners */
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+}
+
+/* Contact Info Styles */
+.contact-info {
+    margin-top: 20px;
+    font-size: 16px;
+}
+
+.contact-info p {
+    margin: 5px 0;
+}
+
+.contact-info a {
+    color: #1e90ff; /* Blue color for links */
+    text-decoration: none;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+/* Credits Styles */
+.credits {
+    text-align: center;
+    font-size: 16px;
+    color: #666; /* Slightly darker grey for contrast */
+    margin-top: 30px;
+}
+
+/* Link Styles */
+a {
+    color: #1e90ff; /* Consistent blue color for all links */
+    text-decoration: none;
+}
