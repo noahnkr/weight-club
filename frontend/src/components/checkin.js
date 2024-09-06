@@ -65,7 +65,7 @@ const Checkin = ({ onCheckinAdded }) => {
     }
 
     // Function to get the date for a specific day of the week within the current week
-    function getDateForDay(day) {
+    function getDateForDay(dayOfWeek) {
         const today = dayjs()
         const currentWeekday = today.day() // Current day of the week (0 = Sunday, 6 = Saturday)
         const targetDay = [
@@ -76,13 +76,14 @@ const Checkin = ({ onCheckinAdded }) => {
             'Thursday',
             'Friday',
             'Saturday',
-        ].indexOf(day)
+        ].indexOf(dayOfWeek)
         // Ensure the target date is within the current week
         if (targetDay < currentWeekday) {
             // If the target day is before today, skip creating a check-in for it
             return null
         }
 
+        // Return the date for the day this week
         return today.add(targetDay - currentWeekday, 'day')
     }
 
@@ -92,16 +93,32 @@ const Checkin = ({ onCheckinAdded }) => {
             return
         }
 
+        if (!name.includes(' ')) {
+            message.error('Please enter a last name.')
+            return
+        }
+
         setSubmitting(true)
 
         // Extract the date, start time, and end time
         const formattedDate = selectedDate.format('YYYY-MM-DD') // Ensure date is formatted correctly
         const startTime = timeRange[0].format('HH:mm')
+        const startTime12 = timeRange[0].format('h:mm A')
         const endTime = timeRange[1].format('HH:mm')
+        const endTime12 = timeRange[1].format('h:mm A')
 
         try {
             if (isRepeat) {
-                // Add repeating check-in
+                // Ensure repeating checkin time is valid for each day
+                for (const day of selectedDays) {
+                    if (!isValidTimeRange(day, startTime, endTime)) {
+                        message.error(
+                            `Check-in from ${startTime12} - ${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
+                        )
+                        setSubmitting(false)
+                        return
+                    }
+                }
                 const response = await fetch(
                     'https://us-central1-weight-club-e16e5.cloudfunctions.net/addRepeatingCheckin',
                     {
@@ -110,7 +127,7 @@ const Checkin = ({ onCheckinAdded }) => {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            name: name,
+                            name: name.trim(),
                             days: selectedDays.join(','),
                             startTime: startTime,
                             endTime: endTime,
@@ -286,6 +303,26 @@ const Checkin = ({ onCheckinAdded }) => {
             </div>
         </div>
     )
+}
+
+export function isValidTimeRange(dayOfWeek, startTime, endTime) {
+    const hours = {
+        Monday: ['06:00', '23:59'],
+        Tuesday: ['06:00', '23:59'],
+        Wednesday: ['06:00', '23:59'],
+        Thursday: ['06:00', '23:59'],
+        Friday: ['06:00', '22:00'],
+        Saturday: ['08:00', '18:00'],
+        Sunday: ['08:00', '23:59'],
+    }
+
+    const open = new Date(`1970-01-01T${hours[dayOfWeek][0]}:00`)
+    const close = new Date(`1970-01-01T${hours[dayOfWeek][1]}:00`)
+
+    const start = new Date(`1970-01-01T${startTime}:00`)
+    const end = new Date(`1970-01-01T${endTime}:00`)
+
+    return start >= open && end <= close
 }
 
 export default Checkin

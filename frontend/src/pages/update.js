@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { UserOutlined, LoadingOutlined } from '@ant-design/icons'
 import { Input, DatePicker, TimePicker, Switch, Select, Spin, message } from 'antd'
+import { isValidTimeRange } from '../components/checkin'
 import dayjs from 'dayjs'
 import '../styles/style.css'
 import '../styles/checkin.css'
@@ -89,7 +90,7 @@ const Update = () => {
         try {
             // Fetch individual check-ins
             const individualResponse = await fetch(
-                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getIndividualCheckins?name=${name}&date=${selectedDate.format(
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getIndividualCheckins?name=${name.trim()}&date=${selectedDate.format(
                     'YYYY-MM-DD'
                 )}`,
                 {
@@ -100,7 +101,7 @@ const Update = () => {
 
             // Fetch repeating check-ins
             const repeatingResponse = await fetch(
-                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getRepeatingCheckins?name=${name}`,
+                `https://us-central1-weight-club-e16e5.cloudfunctions.net/getRepeatingCheckins?name=${name.trim()}`,
                 {
                     method: 'GET',
                 }
@@ -109,12 +110,15 @@ const Update = () => {
 
             // Check if any check-ins were found
             if (individualData.length === 0 && repeatingData.length === 0) {
-                message.info('No check-ins found.')
+                message.info(
+                    `No check-ins found on \`${selectedDate.format(
+                        'MMMM Do, YYYY'
+                    )}\` for \`${name.trim()}\`.`
+                )
+                setFinding(false)
                 setFoundCheckins(false)
-            } else {
-                setFoundCheckins(true)
+                return
             }
-
             // Update state with individual check-ins
             const formattedIndividualTimeRanges = individualData.map((checkin) => [
                 dayjs(checkin.startTime, 'HH:mm'),
@@ -164,11 +168,23 @@ const Update = () => {
                 ? repeatingTimeRanges[index]
                 : individualTimeRanges[index]
             const startTime = timeRange[0].format('HH:mm')
+            const startTime12 = timeRange[0].format('h:mm A')
             const endTime = timeRange[1].format('HH:mm')
+            const endTime12 = timeRange[1].format('h:mm A')
             const isHso = repeating ? repeatingIsHso[index] : individualIsHso[index]
             const isAnonymous = repeating
                 ? repeatingIsAnon[index]
                 : individualIsAnon[index]
+
+            // Ensure repeating checkin time is valid for each day
+            for (const day of repeatingDays[index]) {
+                if (!isValidTimeRange(day, startTime, endTime)) {
+                    message.error(
+                        `Check-in from ${startTime12}-${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
+                    )
+                    return
+                }
+            }
 
             const response = repeating
                 ? await fetch(
@@ -378,9 +394,13 @@ const Update = () => {
                 </div>
             ) : (
                 <div className="update-form">
-                    <h2 className="subheading update-date">
-                        {selectedDate ? selectedDate.format('MMMM Do, YYYY') : ''}
-                    </h2>
+                    {individualTimeRanges.length != 0 ? (
+                        <h2 className="subheading update-date">
+                            {selectedDate ? selectedDate.format('MMMM Do, YYYY') : ''}
+                        </h2>
+                    ) : (
+                        <></>
+                    )}
                     {individualTimeRanges.map((individual, index) => (
                         <div className="update-item" key={index}>
                             <div className="input-container">
@@ -457,7 +477,6 @@ const Update = () => {
                                 <TimePicker.RangePicker
                                     format={'h:mm A'}
                                     minuteStep={15}
-                                    disabledTime={disabledTime}
                                     value={repeating}
                                     onChange={(times) =>
                                         handleTimeChange(times, index, true)
@@ -505,12 +524,17 @@ const Update = () => {
                                 </Select>
                             </div>
                             {repeatingUpdatingOrDeleting[index] ? (
-                                <Spin
-                                    indicator={
-                                        <LoadingOutlined style={{ fontSize: 64 }} spin />
-                                    }
-                                    size="large"
-                                />
+                                <div className="update-delete-container spin-container">
+                                    <Spin
+                                        indicator={
+                                            <LoadingOutlined
+                                                style={{ fontSize: 64 }}
+                                                spin
+                                            />
+                                        }
+                                        size="large"
+                                    />
+                                </div>
                             ) : (
                                 <div className="update-delete-container">
                                     <div
