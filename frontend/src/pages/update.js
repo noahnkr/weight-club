@@ -111,9 +111,9 @@ const Update = () => {
             // Check if any check-ins were found
             if (individualData.length === 0 && repeatingData.length === 0) {
                 message.info(
-                    `No check-ins found on \`${selectedDate.format(
+                    `No check-ins found on ${selectedDate.format(
                         'MMMM Do, YYYY'
-                    )}\` for \`${name.trim()}\`.`
+                    )} for \`${name.trim()}\`.`
                 )
                 setFinding(false)
                 setFoundCheckins(false)
@@ -141,12 +141,12 @@ const Update = () => {
             setRepeatingDays(repeatingData.map((checkin) => checkin.days.split(',')))
             setRepeatingIds(repeatingData.map((checkin) => checkin.id))
             setRepeatingUpdatingOrDeleting(repeatingTimeRanges.map(() => false))
+            setFoundCheckins(true)
         } catch (error) {
             console.error('Error fetching check-ins:', error)
             message.error('Failed to fetch check-ins. Please try again later.')
         } finally {
             setFinding(false)
-            setFoundCheckins(true)
         }
     }
 
@@ -180,7 +180,7 @@ const Update = () => {
             for (const day of repeatingDays[index]) {
                 if (!isValidTimeRange(day, startTime, endTime)) {
                     message.error(
-                        `Check-in from ${startTime12}-${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
+                        `Check-in from ${startTime12} - ${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
                     )
                     return
                 }
