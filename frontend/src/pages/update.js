@@ -16,11 +16,14 @@ const Update = () => {
     const [name, setName] = useState(null)
     const [selectedDate, setSelectedDate] = useState(null)
 
+    // Each state hook is an array with each element containing check-in information.
+    // Since users can havee several check-ins (individual and repeating), each check-in
+    // entry's information is stored at the corresponding index across the state arrays.
     const [individualIds, setIndividualIds] = useState([])
     const [individualTimeRanges, setIndividualTimeRanges] = useState([])
     const [individualIsHso, setIndividualIsHso] = useState([])
     const [individualIsAnon, setIndividualIsAnon] = useState([])
-    const [individualUpdatingOrDeleting, setIndividualUpdatingOrDeleting] = useState([]) // State controlling each individual  update item's wheel
+    const [individualUpdatingOrDeleting, setIndividualUpdatingOrDeleting] = useState([]) // State controlling each individual update item's wheel
 
     const [repeatingIds, setRepeatingIds] = useState([])
     const [repeatingTimeRanges, setRepeatingTimeRanges] = useState([])
@@ -177,12 +180,14 @@ const Update = () => {
                 : individualIsAnon[index]
 
             // Ensure repeating checkin time is valid for each day
-            for (const day of repeatingDays[index]) {
-                if (!isValidTimeRange(day, startTime, endTime)) {
-                    message.error(
-                        `Check-in from ${startTime12} - ${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
-                    )
-                    return
+            if (repeating) {
+                for (const day of repeatingDays[index]) {
+                    if (!isValidTimeRange(day, startTime, endTime)) {
+                        message.error(
+                            `Check-in from ${startTime12} - ${endTime12} is not valid on ${day}. Please check Beyer hall hours.`
+                        )
+                        return
+                    }
                 }
             }
 
